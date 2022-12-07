@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "node ./dist/main.js",
-    "preinstall": "tsc"
+    "postinstall": "tsc"
   },
   "author": "SasisaDev",
   "license": "GPL-2.0-only",
@@ -18,6 +18,6 @@
     "typescript": "^4.9.3"
   },
   "bin": {
-    "bismuth-build-tool": "./dist/main.js"
+    "bismuth-build-tool": "./start.js"
   }
 }
