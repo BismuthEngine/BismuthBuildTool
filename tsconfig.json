@@ -9,5 +9,6 @@
         "module": "ES2020",
         "target":"ESNext"
     },
-    "include": ["src/**/*", "src/*"]
+    "include": ["src/**/*", "src/*"],
+    "exclude": ["node_modules"]
 }
