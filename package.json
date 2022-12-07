@@ -1,0 +1,24 @@
+{
+  "name": "bismuth-build-tool",
+  "version": "1.0.0",
+  "description": "Bismuth engine & projects build tool",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "node ./dist/main.js"
+  },
+  "author": "SasisaDev",
+  "license": "GPL-2.0-only",
+  "dependencies": {
+    "chalk": "^5.1.2"
+  },
+  "bin": {
+    "bismuth-build-tool": "./dist/main.js"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.10",
+    "typescript": "^4.9.3"
+  }
+}

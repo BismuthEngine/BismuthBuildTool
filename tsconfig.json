@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "moduleResolution": "node",
+        "outDir": "dist",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": false,
+        "module": "ES2020",
+        "target":"ESNext"
+    },
+    "include": ["src/**/*", "src/*"]
+}
