@@ -8,7 +8,7 @@ import { execSync } from "child_process";
 import chalk from "chalk";
 import { exit } from "process";
 import Crawler from "./Crawler/Crawler.js";
-import { ModuleList } from "./Types/ModuleList.js";
+import { ModuleList, MultiModuleList } from "./Types/ModuleList.js";
 import Solver from "./Solver/Solver.js";
 import { Stage, Timeline } from "./Types/Timeline.js";
 
@@ -122,7 +122,7 @@ console.log(chalk.bold("[LOG] ") + `Compiling ${project.Name}`);
 
 const CrawlerInstance = new Crawler(target);
 
-CrawlerInstance.CollectModules().then((list: ModuleList)=>{
+CrawlerInstance.CollectModules().then((list: MultiModuleList)=>{
     let SolverInstance = new Solver(target, list);
     
     let TimelineInstance = SolverInstance.Solve();

@@ -4,6 +4,10 @@ import { Stage, StagedModuleInfo } from "./Types/Timeline";
 import { BuilderFrame } from "./Types/BuilderFrame";
 
 export class CompileWorker {
+    Target: Target;
+    constructor(target: Target) {
+        this.Target = target;
+    }
 
     SetRoot(module: StagedModuleInfo) {
         throw "Unimplemented";
@@ -17,7 +21,7 @@ export class CompileWorker {
         throw "Unimplemented";
     }
 
-    AddLinkerRequest() {
+    AddLinkerRequest(req: string) {
         throw "Unimplemented";
     }
 
@@ -40,7 +44,7 @@ export default class Builder {
     }
 
     CreateCompileWorker(): CompileWorker {
-        return new CompileWorker();
+        return new CompileWorker(this.CompilationTarget);
     }
 
     async Compile(): Promise<void> {

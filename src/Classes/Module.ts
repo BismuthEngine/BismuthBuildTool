@@ -10,9 +10,9 @@ export default class Module {
     // Folders, that would be added to include list
     Include: string[] = ["./"]
     // Specifies dependencies
-    Import: string[] = []
+    Imports: string[] = []
     // These modules would be exported with this module's code
-    Export: string[] = []
+    Exports: string[] = []
     // Module(.cppm) that would be compiled as a module
     ModuleEntry: string = ""
     // C++20 Modules support, if false, compile legacy (excludes from BMT)

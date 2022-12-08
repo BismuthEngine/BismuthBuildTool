@@ -8,9 +8,10 @@ type ModuleType = "Module" | "Deploy";
 interface StagedModuleInfo {
     Type: ModuleType,
     Name: string,
-    Path: string
+    Path: string,
+    UpToDate: boolean,
     Module: Module | Deploy,
-    DependsOn: StagedModuleInfo[]
+    DependsOn: string[]
 }
 
 interface Stage {

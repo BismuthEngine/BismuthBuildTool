@@ -1,6 +1,8 @@
 import chalk from "chalk";
 import { existsSync, lstatSync, readdirSync, readFileSync } from "fs";
+import Module from "./Classes/Module";
 import { resolve } from "path";
+import { pathToFileURL } from "url";
 
 export default class Utils {
     static GetPlatform(platform: string): Platform {
@@ -65,5 +67,9 @@ export default class Utils {
         };
 
         return retfiles;
+    }
+
+    static GetIntermediateFolder(root: string): string {
+        return pathToFileURL(resolve(root, "/Intermediate/")).toString();
     }
 }

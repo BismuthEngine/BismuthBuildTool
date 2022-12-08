@@ -1,29 +1,36 @@
 import { exec } from "child_process";
 import Builder, { CompileWorker } from "../builder.js";
+import { StagedModuleInfo } from "../Types/Timeline.js";
 
 export class LLVMCompileWorker extends CompileWorker {
 
+    linkerRequests: string[] = [];
 
-    SetRoot() {
+    SetRoot(module: StagedModuleInfo) {
         throw "Unimplemented";
     }
 
-    AddModule() {
+    SetEntry(path: string) {
         throw "Unimplemented";
     }
 
-    AddLinkerRequest() {
+    AddModule(module: StagedModuleInfo) {
         throw "Unimplemented";
+    }
+
+    AddLinkerRequest(req: string) {
+        this.linkerRequests.push(req);
     }
 
     async Compile() {
-        await exec("clang++ -std=c++20");
+        let Cmd = "clang++ ";
+        
     }
 }
 
 export default class LLVMBuilder extends Builder {
 
     CreateCompileWorker(): CompileWorker {
-        return new LLVMCompileWorker();
+        return new LLVMCompileWorker(this.CompilationTarget);
     }
 }

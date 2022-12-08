@@ -5,7 +5,7 @@
 
 import Module from "../Classes/Module.js";
 import Rules from "../Classes/Rules.js";
-import { ModuleList } from "../Types/ModuleList";
+import { ModuleList, MultiModuleList } from "../Types/ModuleList";
 
 import { join } from "path";
 import { readFile, readdir, lstat, access,  } from "fs/promises";
@@ -39,24 +39,26 @@ export default class Crawler {
                     //console.log(filepath);
                 if(stat.isDirectory()) {
                     await this.CollectFolder(filepath, modlist);
-                } else if (/.module.js/.test(filepath))
+                } else if (/\.module\.js/.test(filepath))
                 {
                     modlist.Modules.push({
                         path: filepath,
-                        object: (new (await this.ImportClass(filepath))(this.CompilationTarget)) as Module
+                        object: (new (await this.ImportClass(filepath))(this.CompilationTarget)) as Module,
+                        type: "Module"
                     })
-                } else if (/.deploy.js/.test(filepath))
+                } else if (/\.deploy\.js/.test(filepath))
                 {
                     modlist.Deploys.push({
                         path: filepath,
-                        object: (new (await this.ImportClass(filepath))(this.CompilationTarget)) as Deploy
+                        object: (new (await this.ImportClass(filepath))(this.CompilationTarget)) as Deploy,
+                        type: "Deploy"
                     })
-                } else if (/.rules.js/.test(filepath))
+                } else if (/\.rules\.js/.test(filepath) && !(/Editor\.rules\.js/.test(filepath)))
                 {
                     if(!this.CompilationTarget.editorMode) {
                         modlist.Rules.push((new (await this.ImportClass(filepath))(this.CompilationTarget)) as Rules)
                     }
-                } else if (/Editor.rules.js/.test(filepath))
+                } else if (/Editor\.rules\.js/.test(filepath))
                 {
                     if(this.CompilationTarget.editorMode) {
                         modlist.Rules.push((new (await this.ImportClass(filepath))(this.CompilationTarget)) as Rules)
@@ -68,17 +70,23 @@ export default class Crawler {
         });
     }
     
-    async CollectModules(): Promise<ModuleList> {
-        return new Promise<ModuleList>(async (resolve, reject) => {
+    async CollectModules(): Promise<MultiModuleList> {
+        return new Promise<MultiModuleList>(async (resolve, reject) => {
             let modlist: ModuleList = {
                 Modules: [],
                 Deploys: [],
                 Rules: []
             };
+            let enginemodlist: ModuleList = {
+                Modules: [],
+                Deploys: [],
+                Rules: []
+            };
+
 
             try{
                 if(this.CompilationTarget.includeEngine) {
-                    await this.CollectFolder(join(this.CompilationTarget.enginePath, "Source/"), modlist);
+                    await this.CollectFolder(join(this.CompilationTarget.enginePath, "Source/"), enginemodlist);
                 } 
 
                 await this.CollectFolder(join(this.CompilationTarget.projectPath, "Source/"), modlist);
@@ -86,7 +94,7 @@ export default class Crawler {
                 throw err;
             }
 
-            resolve(modlist);
+            resolve({Project: modlist, Engine: enginemodlist});
         });
     }
 
