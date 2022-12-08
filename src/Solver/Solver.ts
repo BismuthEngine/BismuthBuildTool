@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { exit } from "process";
 import Module from "../Classes/Module";
 import { ModuleList, MultiModuleList, RawModule } from "../Types/ModuleList";
 import { Stage, StagedModuleInfo, Timeline } from "../Types/Timeline";
@@ -69,6 +70,7 @@ export default class Solver {
 
             if(mod.Type == "Deploy") {
                 this.InteropFrame.Staged.push(mod);
+                console.log(chalk.bold.greenBright.bgBlackBright("[OK] ") + chalk.greenBright.bgBlackBright(`Deployed: ${mod.Name}`));
                 return;
             }
             
@@ -117,6 +119,25 @@ export default class Solver {
         return module;
     }
 
+    VerifyResolutionsExist(stage: Stage): {Name: string, Res: string[]}[] {
+        let Unresolved: {Name: string, Res: string[]}[] = [];
+        stage.Modules.forEach((targetModule: StagedModuleInfo) => {
+            let UnresolvedDeps: string[] = Array.from(targetModule.DependsOn);
+
+            stage.Modules.forEach((testModule: StagedModuleInfo) => {
+                if(UnresolvedDeps.includes(testModule.Name)) {
+                    UnresolvedDeps.splice(UnresolvedDeps.indexOf(testModule.Name), 1);
+                }
+            });
+
+            if(UnresolvedDeps.length > 0) {
+                Unresolved.push({Name: targetModule.Name, Res: UnresolvedDeps});
+            }
+        });
+
+        return Unresolved;
+    }
+
     Solve(): Timeline {
         console.log(chalk.bold('======== SOLVER ========'));
 
@@ -145,6 +166,21 @@ export default class Solver {
         this.Objects.Project.Deploys.forEach((mod: RawModule) => {
             LeavesBranch.Modules.push(this.CalculateUTD(this.StageModule(mod)));
         })
+
+        // Verify, that ALL dependencies & imports exist
+        let Unresolved = this.VerifyResolutionsExist(LeavesBranch);
+        if(Unresolved.length > 0) {
+            console.log(chalk.redBright.bold('[ERROR] ') + chalk.redBright("Unable to resolve dependencies"));
+            
+            Unresolved.forEach((unres: {Name: string, Res: string[]}) => {
+                console.log(chalk.redBright.bold(`\tIn module [${unres.Name}]:`));
+                unres.Res.forEach((failedImport: string) => {
+                    console.log(chalk.redBright(`\t\t${failedImport}`));
+                });
+            });
+
+            exit(-1);
+        }
 
         this.InteropFrame.Branches = LeavesBranch;
         console.log(chalk.bold("[LOG] ") + `Pending to solve ${LeavesBranch.Modules.length} modules`);

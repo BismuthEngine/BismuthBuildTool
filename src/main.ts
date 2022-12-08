@@ -122,14 +122,17 @@ console.log(chalk.bold("[LOG] ") + `Compiling ${project.Name}`);
 
 const CrawlerInstance = new Crawler(target);
 
-CrawlerInstance.CollectModules().then((list: MultiModuleList)=>{
+CrawlerInstance.CollectModules().then(async (list: MultiModuleList)=>{
     let SolverInstance = new Solver(target, list);
     
     let TimelineInstance = SolverInstance.Solve();
 
     let BuilderInstance: Builder = CreateBuilderInstance(target);
+    console.log(chalk.bold('======== BUILDER ========'));
+    //console.log(TimelineInstance);
     for(let i = 0; i < TimelineInstance.Stages.length; i++) {
         BuilderInstance.PushStage(<Stage>TimelineInstance.Stages[i]);
-        BuilderInstance.Compile(); 
+        await BuilderInstance.Compile(); 
     }
+    console.log(chalk.bold('======== FINISHED ========'));
 });

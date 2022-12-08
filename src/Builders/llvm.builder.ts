@@ -1,21 +1,24 @@
+import chalk from "chalk";
 import { exec } from "child_process";
 import Builder, { CompileWorker } from "../builder.js";
 import { StagedModuleInfo } from "../Types/Timeline.js";
 
 export class LLVMCompileWorker extends CompileWorker {
 
+    root: StagedModuleInfo;
+    entry: string;
     linkerRequests: string[] = [];
 
     SetRoot(module: StagedModuleInfo) {
-        throw "Unimplemented";
+        this.root = module;
     }
 
     SetEntry(path: string) {
-        throw "Unimplemented";
+        
     }
 
     AddModule(module: StagedModuleInfo) {
-        throw "Unimplemented";
+        
     }
 
     AddLinkerRequest(req: string) {
@@ -24,7 +27,11 @@ export class LLVMCompileWorker extends CompileWorker {
 
     async Compile() {
         let Cmd = "clang++ ";
-        
+        if(this.root) {
+            console.log(chalk.greenBright.bold("[OK] ") + chalk.greenBright(`Compiled: ${this.root.Name}`));
+        } else if(this.entry) {
+            console.log(chalk.greenBright.bold("[OK] ") + chalk.greenBright(`Compiled: Main`));
+        }
     }
 }
 

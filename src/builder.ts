@@ -2,6 +2,7 @@ import Module from "./Classes/Module.js";
 import Deploy from "./Classes/Deploy.js";
 import { Stage, StagedModuleInfo } from "./Types/Timeline";
 import { BuilderFrame } from "./Types/BuilderFrame";
+import chalk from "chalk";
 
 export class CompileWorker {
     Target: Target;
@@ -33,6 +34,7 @@ export class CompileWorker {
 export default class Builder {
     constructor(target: Target) {
         this.CompilationTarget = target;
+        this.Frame = {CurrentStage: null, PreviousStages: []};
     }
 
     CompilationTarget: Target;
@@ -48,11 +50,13 @@ export default class Builder {
     }
 
     async Compile(): Promise<void> {
+        //console.log(this.Frame);
         for(let moduleIdx = 0; moduleIdx < this.Frame.CurrentStage.Modules.length; moduleIdx++) {
             let module: StagedModuleInfo = this.Frame.CurrentStage.Modules[moduleIdx];
 
             let worker = this.CreateCompileWorker();
-            worker.AddModule(module);
+            worker.SetRoot(module);
+            await worker.Compile();
         }
     }
 }
