@@ -9,5 +9,7 @@ interface Target {
     includeEngine: boolean,
     enginePath: string, 
     projectPath: string,
-    EnvArgs: NodeJS.ProcessEnv
+    EnvArgs: NodeJS.ProcessEnv,
+    entry: string,
+    editorMode: boolean
 }

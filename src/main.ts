@@ -23,13 +23,16 @@ const args: Arguments = ParseArguments(process.argv);
 const target: Target = {
     platform: args.platform.isUsed ? args.platform.arg : Utils.GetPlatform(process.platform),
     arch: args.arch.isUsed ? args.arch.arg : Utils.GetArch(process.arch),
-    includeEngine: !args.compile.isUsed,
+    includeEngine: args.project.isUsed,
     enginePath: "",
+    entry: "",
     projectPath: (args.project.isUsed ? resolve(__dirname, args.project.arg) : (args.compile.isUsed ? resolve(__dirname, args.compile.arg) : "")),
-    EnvArgs: process.env
+    EnvArgs: process.env,
+    editorMode: args.EditorCompilation
 }
 
 var project: Project;
+var engineProject: Project;
 
 //console.log(target)
 
@@ -52,10 +55,8 @@ if(!args.NoBMT) {
             exit(-1);
      };
 } else {
-    if(!args.compile.isUsed) {
-        console.log(chalk.yellowBright.bold("[WARN] ") + chalk.yellowBright("\tSkipped Bismuth Module Tool\n") +
-        chalk.yellowBright("\tYou shouldn't skip Module-Tool pass in most cases!"));
-    }
+    console.log(chalk.yellowBright.bold("[WARN] ") + chalk.yellowBright("\tSkipped Bismuth Module Tool\n") +
+    chalk.yellowBright("\tYou shouldn't skip Module-Tool pass in most cases!"));
 }
 
 // Retrieve project file
@@ -64,13 +65,26 @@ try {
     if(args.project.isUsed) {
         if(project.EnginePath) {
             target.enginePath = project.EnginePath;
+            // Fetch engine's project file
+            try {
+                engineProject = Utils.ReadJSON(Utils.GetFilesFiltered(target.enginePath, /.project.json/)[0]);
+                if(engineProject.Entry) {
+                    target.entry = engineProject.Entry;
+                } else {
+                    console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No Entry specified in Bismuth.project.json! That must be our bad, see https://github.com/"));
+                    exit(-1);
+                }
+            } catch (err) {
+                console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No engine's .project.json file found! Check that engine is installed and reference is updated."));
+                exit(-1);
+            }
         } else {
             console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No EnginePath specified in .project.json!"));
             exit(-1);
         }
     }
 } catch (err) {
-    console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No .project.json file found!"));
+    console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No correct .project.json file provided!"));
     exit(-1);
 }
 

@@ -1,3 +1,4 @@
+import * as Module from "module";
 import { ModuleList } from "../Types/ModuleList";
 import { Stage, StagedModuleInfo, Timeline } from "../Types/Timeline";
 
@@ -11,9 +12,10 @@ import { Stage, StagedModuleInfo, Timeline } from "../Types/Timeline";
 export default class Solver {
     Timeline: Timeline;
     InteropFrame: {Branches: Stage, Leaves: Stage[], Staged: StagedModuleInfo[]}
+    Objects: ModuleList;
     
     constructor(target: Target, crawler: ModuleList) {
-
+        this.Objects = crawler;
     }
 
     PushInteropFrame() {
@@ -35,7 +37,24 @@ export default class Solver {
         this.InteropFrame.Branches = this.Timeline.Stages[NewStageIndex];
     }
 
+    StageModule(module: Module) {
+
+    }
+
     Solve(): Timeline {
-        return {Stages: []};
+        // Filter modules by rules
+        
+        // Get leaves
+
+        this.PushInteropFrame();
+
+        // Generate stages
+        for(;1>1;) {
+            // Stage modules that depend on previous stage's modules
+
+            this.PushInteropFrame();
+        }
+
+        return this.Timeline;
     }
 }
