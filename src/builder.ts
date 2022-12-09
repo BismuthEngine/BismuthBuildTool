@@ -3,6 +3,8 @@ import Deploy from "./Classes/Deploy.js";
 import { Stage, StagedModuleInfo } from "./Types/Timeline";
 import { BuilderFrame } from "./Types/BuilderFrame";
 import chalk from "chalk";
+import { join } from "path";
+import { mkdirSync, writeFileSync } from "fs";
 
 export class CompileWorker {
     Target: Target;
@@ -43,6 +45,19 @@ export default class Builder {
     PushStage(stage: Stage) {
         this.Frame.PreviousStages.push(this.Frame.CurrentStage);
         this.Frame.CurrentStage = stage;
+    }
+
+    SaveHash(module: StagedModuleInfo) {
+        let IntermediatePath: string = "";
+        switch(module.Domain) {
+            case "Engine":
+                IntermediatePath = join(this.CompilationTarget.enginePath, "/Intermediate/");
+            case "Project":
+                IntermediatePath = join(this.CompilationTarget.projectPath, "/Intermediate/");
+        }
+        
+        mkdirSync(join(IntermediatePath, "/Modules/"), {recursive: true});
+        writeFileSync(join(IntermediatePath, "/Modules/", (module.Name + ".hash")), module.ActualHash);
     }
 
     CreateCompileWorker(): CompileWorker {

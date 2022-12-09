@@ -11,7 +11,9 @@ interface StagedModuleInfo {
     Path: string,
     UpToDate: boolean,
     Module: Module | Deploy,
-    DependsOn: string[]
+    DependsOn: string[],
+    ActualHash: string,
+    Domain: "Engine" | "Project"
 }
 
 interface Stage {

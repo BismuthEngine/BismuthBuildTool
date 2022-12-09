@@ -1,6 +1,9 @@
 import chalk from "chalk";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { join } from "path";
 import { exit } from "process";
 import Module from "../Classes/Module";
+import Rules from "../Classes/Rules";
 import { ModuleList, MultiModuleList, RawModule } from "../Types/ModuleList";
 import { Stage, StagedModuleInfo, Timeline } from "../Types/Timeline";
 
@@ -41,14 +44,16 @@ export default class Solver {
         this.InteropFrame.Branches = this.Timeline.Stages[NewStageIndex];
     }
 
-    StageModule(module: RawModule): StagedModuleInfo {
+    StageModule(module: RawModule, Domain: "Engine" | "Project"): StagedModuleInfo {
         let StagedModule: StagedModuleInfo = {
             Type: module.type,
             Name: module.object.Name,
             Path: module.path,
             UpToDate: false,
             Module: module.object,
-            DependsOn: []
+            DependsOn: [],
+            ActualHash: module.hash,
+            Domain: Domain
         }
 
         // Get dependencies
@@ -59,7 +64,16 @@ export default class Solver {
         return StagedModule;
     }
 
-    ResolveDependenciesRaw() {
+    SolveRules() {
+        if(this.Objects.Project.Rules == undefined) {
+            console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("Project's corresponding .rules.js file not found!"));
+            exit(-1);
+        }
+        let rulesDependencies: string[] = (this.Objects.Project.Rules as Rules).Modules;
+        if(this.CompilationTarget.includeEngine) {
+            rulesDependencies.concat((this.Objects.Engine.Rules as Rules).Modules);
+        }
+
 
     }
 
@@ -94,6 +108,8 @@ export default class Solver {
                             // If true, we found our dependency in Leaves
                             if(currentModule.Name === RequiredDependencies[depIdx]) {
                                 PreviousResolved = true;
+                                // If dependency is not up-2-date, our module is not up-2-date
+                                if(currentModule.UpToDate == false) mod.UpToDate = false;
                                 break ResolutionFromStages;
                             }
                         }
@@ -109,14 +125,34 @@ export default class Solver {
 
             if(Resolved) {
                 this.InteropFrame.Staged.push(mod);
-                console.log(chalk.bold.greenBright("[OK] ") + chalk.greenBright(`Solved: ${mod.Name}`));
+                console.log(chalk.bold.greenBright("[OK] ") + chalk.greenBright(`Solved: ${mod.Name} ${(!mod.UpToDate ? "(Not up to date)" : "(Up to date)")}`));
             }
         })
     }
 
     CalculateUTD(module: StagedModuleInfo): StagedModuleInfo {
-        module.UpToDate = false;
+        let IntermediatePath: string = "";
+        switch(module.Domain) {
+            case "Engine":
+                IntermediatePath = join(this.CompilationTarget.enginePath, "/Intermediate/");
+            case "Project":
+                IntermediatePath = join(this.CompilationTarget.projectPath, "/Intermediate/");
+        }
+
+        const HashPath = join(IntermediatePath, "/Modules/", (module.Name + ".hash"));
+        try{
+            const newHash = readFileSync(HashPath, {encoding: "utf8"});
+
+            module.UpToDate = (module.ActualHash === newHash);
+        } catch (error) {
+            module.UpToDate = false;
+        }
+        
         return module;
+    }
+
+    SolveInteropFrameUTD() {
+
     }
 
     VerifyResolutionsExist(stage: Stage): {Name: string, Res: string[]}[] {
@@ -140,10 +176,6 @@ export default class Solver {
 
     Solve(): Timeline {
         console.log(chalk.bold('======== SOLVER ========'));
-
-        // Filter modules by rules
-
-        // TODO: CRITICAL: Check for all imports to actually exist
         
         // Get leaves
         let LeavesBranch: Stage = {
@@ -153,19 +185,22 @@ export default class Solver {
         // Include Bismuth modules, if project is not self-contained
         if(this.CompilationTarget.includeEngine) {
             this.Objects.Engine.Modules.forEach((mod: RawModule) => {
-                LeavesBranch.Modules.push(this.CalculateUTD(this.StageModule(mod)));
+                LeavesBranch.Modules.push(this.CalculateUTD(this.StageModule(mod, "Engine")));
             })
             this.Objects.Engine.Deploys.forEach((mod: RawModule) => {
-                LeavesBranch.Modules.push(this.CalculateUTD(this.StageModule(mod)));
+                LeavesBranch.Modules.push(this.CalculateUTD(this.StageModule(mod, "Engine")));
             })
         }
         // Stage leaves from project
         this.Objects.Project.Modules.forEach((mod: RawModule) => {
-            LeavesBranch.Modules.push(this.CalculateUTD(this.StageModule(mod)));
+            LeavesBranch.Modules.push(this.CalculateUTD(this.StageModule(mod, "Project")));
         })
         this.Objects.Project.Deploys.forEach((mod: RawModule) => {
-            LeavesBranch.Modules.push(this.CalculateUTD(this.StageModule(mod)));
+            LeavesBranch.Modules.push(this.CalculateUTD(this.StageModule(mod, "Project")));
         })
+
+        // Solve rules
+        this.SolveRules();
 
         // Verify, that ALL dependencies & imports exist
         let Unresolved = this.VerifyResolutionsExist(LeavesBranch);

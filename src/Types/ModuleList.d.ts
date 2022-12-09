@@ -8,13 +8,14 @@ type RootModule = "Engine" | "Project";
 interface RawModule {
     path: string,
     object: Module | Deploy,
-    type: ModuleType
+    type: ModuleType,
+    hash: string
 }
 
 interface ModuleList {
     Modules: RawModule[],
     Deploys: RawModule[],
-    Rules: Rules[]
+    Rules: Rules | any
 }
 
 interface MultiModuleList {

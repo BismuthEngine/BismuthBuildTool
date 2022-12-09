@@ -24,6 +24,12 @@ export default class Crawler {
     Modules: Map<string, any> = new Map<string, any>();
     Rules: Rules[] = [];
 
+    private async CollectHash(path: string): Promise<string> {
+        
+
+        return "123123123123";
+    }
+
     private async CollectFolder(path: string, modlist: ModuleList): Promise<any> {
         return new Promise<any>(async (resolve, reject) => {
             try {
@@ -44,24 +50,26 @@ export default class Crawler {
                     modlist.Modules.push({
                         path: filepath,
                         object: (new (await this.ImportClass(filepath))(this.CompilationTarget)) as Module,
-                        type: "Module"
+                        type: "Module",
+                        hash: await this.CollectHash(path)
                     })
                 } else if (/\.deploy\.js/.test(filepath))
                 {
                     modlist.Deploys.push({
                         path: filepath,
                         object: (new (await this.ImportClass(filepath))(this.CompilationTarget)) as Deploy,
-                        type: "Deploy"
+                        type: "Deploy",
+                        hash: ""
                     })
                 } else if (/\.rules\.js/.test(filepath) && !(/Editor\.rules\.js/.test(filepath)))
                 {
                     if(!this.CompilationTarget.editorMode) {
-                        modlist.Rules.push((new (await this.ImportClass(filepath))(this.CompilationTarget)) as Rules)
+                        modlist.Rules= (new (await this.ImportClass(filepath))(this.CompilationTarget) as Rules)
                     }
                 } else if (/Editor\.rules\.js/.test(filepath))
                 {
                     if(this.CompilationTarget.editorMode) {
-                        modlist.Rules.push((new (await this.ImportClass(filepath))(this.CompilationTarget)) as Rules)
+                        modlist.Rules =(new (await this.ImportClass(filepath))(this.CompilationTarget) as Rules)
                     }
                 }
             }
@@ -75,12 +83,12 @@ export default class Crawler {
             let modlist: ModuleList = {
                 Modules: [],
                 Deploys: [],
-                Rules: []
+                Rules: null
             };
             let enginemodlist: ModuleList = {
                 Modules: [],
                 Deploys: [],
-                Rules: []
+                Rules: null
             };
 
 
