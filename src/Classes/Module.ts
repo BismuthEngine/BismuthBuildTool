@@ -8,10 +8,10 @@ export default class Module {
     // Module name
     Name: string = ""
     // Folders, that would be added to include list
-    Include: string[] = ["./"]
+    Includes: string[] = ["./"]
     // Specifies dependencies
     Imports: string[] = []
-    // These modules would be exported with this module's code
+    // Specifies files to include into build pipeline
     Exports: string[] = []
     // Module(.cppm) that would be compiled as a module
     ModuleEntry: string = ""
@@ -19,6 +19,9 @@ export default class Module {
     Module: boolean = true
     // Legacy compilation files
     CompileFiles: string[] = []
-    // Auto-generate PCH files for this module, using Bismuth Module Tool
+    // Auto-generate PCM files for this module, using Bismuth Module Tool
     UseBMT: boolean = true
+
+    // Options to pass when linking
+    LinkerOptions: string[] = []
 }

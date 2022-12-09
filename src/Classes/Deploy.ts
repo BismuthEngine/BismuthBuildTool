@@ -9,7 +9,7 @@ export default class Deploy {
     Name: string = ""
     // Include directories
     Includes: string[] = []
-    // Static libs
+    // Static libs (.o, .lib)
     StaticLibs: string[] = []
     // Dynamic libs
     DynamicLibs: string[] = []
@@ -18,7 +18,10 @@ export default class Deploy {
     // Options that would be passed to compiler as -l{option}
     LinkerOptions: string[] = []
     // License
-    License: string = "";
+    License: string = ""
+
+    // If true, passed to Builder as compilation target
+    Compiled: boolean = false
 
     // Seeks, downloads, installs module and returns deployment information
     async Deploy(fetch: FetchAPI): Promise<any> {
