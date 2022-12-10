@@ -26,6 +26,12 @@ export default class Solver {
     }
 
     PushInteropFrame() {
+        if(this.InteropFrame.Staged.length <= 0) {
+            // Circular dependency must be
+            console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("Circular dependency detected!"));
+            exit(-1);
+        }
+
         // Exclude staged modules from interop frame
         let UnstagedModules: StagedModuleInfo[];
         UnstagedModules = this.InteropFrame.Branches.Modules.filter((value: StagedModuleInfo) => {
@@ -34,14 +40,15 @@ export default class Solver {
 
         // Save staged modules to current stage & reset it
         this.InteropFrame.Branches.Modules = this.InteropFrame.Staged;
+
+        // Push new stage into timeline
+        this.Timeline.Stages.push({Modules: this.InteropFrame.Staged});
+
         this.InteropFrame.Staged = [];
 
         this.InteropFrame.Leaves.push(this.InteropFrame.Branches);
-
-        // Push new stage(unsorted) into timeline
-        let NewStageIndex = this.Timeline.Stages.push({Modules: UnstagedModules}) - 1;
         
-        this.InteropFrame.Branches = this.Timeline.Stages[NewStageIndex];
+        this.InteropFrame.Branches = {Modules: UnstagedModules};
     }
 
     StageModule(module: RawModule, Domain: "Engine" | "Project"): StagedModuleInfo {
@@ -69,7 +76,8 @@ export default class Solver {
             console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("Project's corresponding .rules.js file not found!"));
             exit(-1);
         }
-        let rulesDependencies: string[] = (this.Objects.Project.Rules as Rules).Modules;
+        let rulesDependencies: string[] = [];
+        rulesDependencies.concat((this.Objects.Project.Rules as Rules).Modules);
         if(this.CompilationTarget.includeEngine) {
             rulesDependencies.concat((this.Objects.Engine.Rules as Rules).Modules);
         }
@@ -135,9 +143,12 @@ export default class Solver {
         switch(module.Domain) {
             case "Engine":
                 IntermediatePath = join(this.CompilationTarget.enginePath, "/Intermediate/");
+                break;
             case "Project":
                 IntermediatePath = join(this.CompilationTarget.projectPath, "/Intermediate/");
+                break;
         }
+        //console.log(IntermediatePath + " : " + module.Domain);
 
         const HashPath = join(IntermediatePath, "/Modules/", (module.Name + ".hash"));
         try{
@@ -231,7 +242,8 @@ export default class Solver {
             this.PushInteropFrame();
         }
 
-        console.log(chalk.bold(`Solved ${this.InteropFrame.Leaves.length} stages`));
+        console.log(chalk.bold(`Solved ${this.Timeline.Stages.length} stages`));
+        //console.log(this.Timeline.Stages[0]);
         return this.Timeline;
     }
 }

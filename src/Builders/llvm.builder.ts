@@ -27,11 +27,10 @@ export class LLVMCompileWorker extends CompileWorker {
 
     async Compile() {
         let Cmd = "clang++ ";
-        if(this.root) {
-            console.log(chalk.greenBright.bold("[OK] ") + chalk.greenBright(`Compiled: ${this.root.Name}`));
-        } else if(this.entry) {
-            console.log(chalk.greenBright.bold("[OK] ") + chalk.greenBright(`Compiled: Main`));
-        }
+
+        await exec(Cmd, (error, stdout, stderr) => {
+            console.log(stdout);
+        });
     }
 }
 

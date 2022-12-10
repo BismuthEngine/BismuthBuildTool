@@ -128,11 +128,13 @@ CrawlerInstance.CollectModules().then(async (list: MultiModuleList)=>{
     let TimelineInstance = SolverInstance.Solve();
 
     let BuilderInstance: Builder = CreateBuilderInstance(target);
+    
     console.log(chalk.bold('======== BUILDER ========'));
     //console.log(TimelineInstance);
     for(let i = 0; i < TimelineInstance.Stages.length; i++) {
+        //console.log(TimelineInstance.Stages[i]);
         BuilderInstance.PushStage(<Stage>TimelineInstance.Stages[i]);
         await BuilderInstance.Compile(); 
     }
-    console.log(chalk.bold('======== FINISHED ========'));
+    //console.log(chalk.bold('======== FINISHED ========'));
 });

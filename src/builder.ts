@@ -5,6 +5,7 @@ import { BuilderFrame } from "./Types/BuilderFrame";
 import chalk from "chalk";
 import { join } from "path";
 import { mkdirSync, writeFileSync } from "fs";
+import { exit } from "process";
 
 export class CompileWorker {
     Target: Target;
@@ -64,14 +65,71 @@ export default class Builder {
         return new CompileWorker(this.CompilationTarget);
     }
 
+    // Slow! Fix later
+    SearchDependency(dependencyName: string){
+        let retmodule: StagedModuleInfo | undefined = undefined;
+
+        // Search
+        this.Frame.PreviousStages.forEach(stage => {
+            if(stage) {
+                stage.Modules.forEach(module => {
+                    if(module.Name === dependencyName) {
+                        retmodule = module;
+                        return;
+                    }
+                });
+            }
+            if(retmodule != undefined) return;
+        });
+
+        if(retmodule === undefined) 
+            throw "couldn't find module";
+        else
+            return retmodule;
+    }
+
+    async ResolveAllDependencies(module: StagedModuleInfo, worker: CompileWorker) {
+        return new Promise<void>((resolve, reject) => {
+            module.DependsOn.forEach((UnresolvedDependency: string) => {
+                try {
+                    worker.AddModule(this.SearchDependency(UnresolvedDependency));
+                } catch (error) {
+                    //console.log(error);
+                    reject(UnresolvedDependency);
+                }
+            })
+
+            resolve();
+        });
+    }
+
     async Compile(): Promise<void> {
         //console.log(this.Frame);
         for(let moduleIdx = 0; moduleIdx < this.Frame.CurrentStage.Modules.length; moduleIdx++) {
             let module: StagedModuleInfo = this.Frame.CurrentStage.Modules[moduleIdx];
 
-            let worker = this.CreateCompileWorker();
-            worker.SetRoot(module);
-            await worker.Compile();
+            if(!module.UpToDate && (module.Type == "Module" || ((module.Type == "Deploy") ? (<Deploy>module.Module).Compiled : false))) {
+                let worker = this.CreateCompileWorker();
+                worker.SetRoot(module);
+                // Add dependencies to pipeline
+                this.ResolveAllDependencies(module, worker)
+                .then(()=>{
+                    // As soon as dependencies resolved - compile
+                    worker.Compile()
+                    .then(() => {
+                        console.log(chalk.greenBright.bold("[OK] ") + chalk.greenBright(`Compiled: ${module.Name}`));
+                    })
+                    .catch((reason: CompilationError) => {
+                        switch (reason) {
+                        }
+                        exit(-1);
+                    });
+                })
+                .catch((reason) => {
+                    console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright(`Module ${module.Name}: Failed resolving dependency "${reason}"! Solver pass succeeded, so it must be our bad, see https://github.com/`));
+                    exit(-1);
+                });
+            }
         }
     }
 }
