@@ -104,9 +104,12 @@ export default class Builder {
     }
 
     async Compile(): Promise<void> {
-        //console.log(this.Frame);
+        return new Promise<void>((res, rej)=> {
+            //console.log(this.Frame);
         for(let moduleIdx = 0; moduleIdx < this.Frame.CurrentStage.Modules.length; moduleIdx++) {
             let module: StagedModuleInfo = this.Frame.CurrentStage.Modules[moduleIdx];
+
+            //console.log(`Compiling: ${module.Name}`);
 
             if(!module.UpToDate && (module.Type == "Module" || ((module.Type == "Deploy") ? (<Deploy>module.Module).Compiled : false))) {
                 let worker = this.CreateCompileWorker();
@@ -118,8 +121,10 @@ export default class Builder {
                     worker.Compile()
                     .then(() => {
                         console.log(chalk.greenBright.bold("[OK] ") + chalk.greenBright(`Compiled: ${module.Name}`));
+                        res();
                     })
                     .catch((reason: CompilationError) => {
+                        console.log(chalk.redBright.bold(`[ERROR in module ${module.Name}] `) + reason);
                         switch (reason) {
                         }
                         exit(-1);
@@ -131,5 +136,6 @@ export default class Builder {
                 });
             }
         }
+        });
     }
 }

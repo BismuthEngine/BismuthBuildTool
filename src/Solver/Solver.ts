@@ -92,7 +92,7 @@ export default class Solver {
 
             if(mod.Type == "Deploy") {
                 this.InteropFrame.Staged.push(mod);
-                console.log(chalk.bold.greenBright.bgBlackBright("[OK] ") + chalk.greenBright.bgBlackBright(`Deployed: ${mod.Name}`));
+                console.log(chalk.bold.greenBright.bgWhite("[OK] ") + chalk.greenBright.bgWhite(`Deployed: ${mod.Name}`));
                 return;
             }
             

@@ -122,6 +122,18 @@ console.log(chalk.bold("[LOG] ") + `Compiling ${project.Name}`);
 
 const CrawlerInstance = new Crawler(target);
 
+async function CompileAll(BuilderInstance: Builder, TimelineInstance: Timeline): Promise<any> {
+    return new Promise<any>(async (res, rej) => {
+        for(let i = 0; i < TimelineInstance.Stages.length; i++) {
+            //console.log(TimelineInstance.Stages[i]);
+            BuilderInstance.PushStage(<Stage>TimelineInstance.Stages[i]);
+            await BuilderInstance.Compile();
+        }
+
+        res(undefined);
+    });
+}
+
 CrawlerInstance.CollectModules().then(async (list: MultiModuleList)=>{
     let SolverInstance = new Solver(target, list);
     
@@ -131,10 +143,8 @@ CrawlerInstance.CollectModules().then(async (list: MultiModuleList)=>{
     
     console.log(chalk.bold('======== BUILDER ========'));
     //console.log(TimelineInstance);
-    for(let i = 0; i < TimelineInstance.Stages.length; i++) {
-        //console.log(TimelineInstance.Stages[i]);
-        BuilderInstance.PushStage(<Stage>TimelineInstance.Stages[i]);
-        await BuilderInstance.Compile(); 
-    }
+    CompileAll(BuilderInstance, TimelineInstance).then((result) => {
+        console.log(chalk.bold('======== SUCCESS ========'));
+    });
     //console.log(chalk.bold('======== FINISHED ========'));
 });

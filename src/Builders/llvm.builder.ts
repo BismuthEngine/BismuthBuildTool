@@ -25,12 +25,20 @@ export class LLVMCompileWorker extends CompileWorker {
         this.linkerRequests.push(req);
     }
 
-    async Compile() {
-        let Cmd = "clang++ ";
+    async Compile(): Promise<void> {
+        return new Promise<void>(async (res, rej) => {
+            let Cmd = "clang++ ";
 
-        await exec(Cmd, (error, stdout, stderr) => {
-            console.log(stdout);
-        });
+            exec(Cmd, (error, stdout, stderr) => {
+                console.log(stdout);
+
+                if(error) {
+                    rej(stderr);
+                } else {
+                    res();
+                }
+            });
+        })
     }
 }
 
