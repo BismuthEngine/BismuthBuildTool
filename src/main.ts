@@ -28,7 +28,8 @@ const target: Target = {
     entry: "",
     projectPath: (args.project.isUsed ? resolve(__dirname, args.project.arg) : (args.compile.isUsed ? resolve(__dirname, args.compile.arg) : "")),
     EnvArgs: process.env,
-    editorMode: args.EditorCompilation
+    editorMode: args.EditorCompilation,
+    debug: args.Debug
 }
 
 var project: Project;
@@ -82,6 +83,13 @@ try {
             console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No EnginePath specified in .project.json!"));
             exit(-1);
         }
+    } else if(args.compile.isUsed) {
+        if(project.Entry) {
+            target.entry = project.Entry;
+        } else {
+            console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No Entry specified in your project's .project.json!"));
+            exit(-1);
+        }
     }
 } catch (err) {
     console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No correct .project.json file provided!"));
@@ -122,7 +130,7 @@ console.log(chalk.bold("[LOG] ") + `Compiling ${project.Name}`);
 
 const CrawlerInstance = new Crawler(target);
 
-async function CompileAll(BuilderInstance: Builder, TimelineInstance: Timeline): Promise<any> {
+async function CompileAllModules(BuilderInstance: Builder, TimelineInstance: Timeline): Promise<any> {
     return new Promise<any>(async (res, rej) => {
         for(let i = 0; i < TimelineInstance.Stages.length; i++) {
             //console.log(TimelineInstance.Stages[i]);
@@ -143,8 +151,22 @@ CrawlerInstance.CollectModules().then(async (list: MultiModuleList)=>{
     
     console.log(chalk.bold('======== BUILDER ========'));
     //console.log(TimelineInstance);
-    CompileAll(BuilderInstance, TimelineInstance).then((result) => {
-        console.log(chalk.bold('======== SUCCESS ========'));
+    CompileAllModules(BuilderInstance, TimelineInstance).then((result) => {
+        // Compile everything into executable
+        let finalWorker = BuilderInstance.CreateCompileWorker()
+        finalWorker.SetEntry(target.entry);
+        TimelineInstance.Stages[TimelineInstance.Stages.length-1].Modules.forEach(obj => {
+            finalWorker.AddModule(obj);
+        })
+        finalWorker.Compile()
+        .then(()=>{
+            console.log(chalk.bold('======== SUCCESS ========'));
+        })
+        .catch((reason)=>{
+            console.log(reason);
+        });
+
+        
     });
     //console.log(chalk.bold('======== FINISHED ========'));
 });

@@ -26,5 +26,6 @@ interface Arguments {
     },
     UpdateEngine: boolean,
     EditorCompilation: boolean,
-    NoBMT: boolean
+    NoBMT: boolean,
+    Debug: boolean
 }

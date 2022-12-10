@@ -28,7 +28,8 @@ export default function (args: string[]): Arguments {
         Shipping: {
             isUsed: false,
             arg: ""
-        }
+        },
+        Debug: false
     };
 
     for(let i = 0; i < args.length; i++)
@@ -80,6 +81,9 @@ export default function (args: string[]): Arguments {
                 i++;
                 argument = args[i];
                 result.Shipping.arg = argument;
+                break;
+            case "--debug":
+                result.Debug = true;
                 break;
         }
     }

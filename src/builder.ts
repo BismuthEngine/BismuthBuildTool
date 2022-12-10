@@ -6,6 +6,7 @@ import chalk from "chalk";
 import { join } from "path";
 import { mkdirSync, writeFileSync } from "fs";
 import { exit } from "process";
+import {CompilationError, BuilderPipeline} from "./Types/Compilation";
 
 export class CompileWorker {
     Target: Target;

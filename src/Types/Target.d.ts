@@ -11,5 +11,6 @@ interface Target {
     projectPath: string,
     EnvArgs: NodeJS.ProcessEnv,
     entry: string,
-    editorMode: boolean
+    editorMode: boolean,
+    debug: boolean
 }
