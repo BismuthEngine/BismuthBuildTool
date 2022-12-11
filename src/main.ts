@@ -4,7 +4,7 @@ import Builder from "./builder.js";
 import CreateBuilderInstance from "./builder.factory.js";
 import ParseArguments from "./arguments.js"
 import Utils from "./utils.js";
-import { execSync } from "child_process";
+import { exec, execSync } from "child_process";
 import chalk from "chalk";
 import { exit } from "process";
 import Crawler from "./Crawler/Crawler.js";
@@ -69,12 +69,12 @@ try {
             // Fetch engine's project file
             try {
                 engineProject = Utils.ReadJSON(Utils.GetFilesFiltered(target.enginePath, /.project.json/)[0]);
-                if(engineProject.Entry) {
+                /*if(engineProject.Entry) {
                     target.entry = engineProject.Entry;
                 } else {
                     console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No Entry specified in Bismuth.project.json! That must be our bad, see https://github.com/"));
                     exit(-1);
-                }
+                }*/
             } catch (err) {
                 console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No engine's .project.json file found! Check that engine is installed and reference is updated."));
                 exit(-1);
@@ -84,12 +84,12 @@ try {
             exit(-1);
         }
     } else if(args.compile.isUsed) {
-        if(project.Entry) {
+        /*if(project.Entry) {
             target.entry = project.Entry;
         } else {
             console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No Entry specified in your project's .project.json!"));
             exit(-1);
-        }
+        }*/
     }
 } catch (err) {
     console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No correct .project.json file provided!"));
@@ -130,43 +130,27 @@ console.log(chalk.bold("[LOG] ") + `Compiling ${project.Name}`);
 
 const CrawlerInstance = new Crawler(target);
 
-async function CompileAllModules(BuilderInstance: Builder, TimelineInstance: Timeline): Promise<any> {
-    return new Promise<any>(async (res, rej) => {
-        for(let i = 0; i < TimelineInstance.Stages.length; i++) {
-            //console.log(TimelineInstance.Stages[i]);
-            BuilderInstance.PushStage(<Stage>TimelineInstance.Stages[i]);
-            await BuilderInstance.Compile();
-        }
-
-        res(undefined);
-    });
-}
-
 CrawlerInstance.CollectModules().then(async (list: MultiModuleList)=>{
     let SolverInstance = new Solver(target, list);
     
     let TimelineInstance = SolverInstance.Solve();
 
-    let BuilderInstance: Builder = CreateBuilderInstance(target);
+    let BuilderInstance: Builder = CreateBuilderInstance(target, TimelineInstance);
     
     console.log(chalk.bold('======== BUILDER ========'));
     //console.log(TimelineInstance);
-    CompileAllModules(BuilderInstance, TimelineInstance).then((result) => {
-        // Compile everything into executable
-        let finalWorker = BuilderInstance.CreateCompileWorker()
-        finalWorker.SetEntry(target.entry);
-        TimelineInstance.Stages[TimelineInstance.Stages.length-1].Modules.forEach(obj => {
-            finalWorker.AddModule(obj);
-        })
-        finalWorker.Compile()
-        .then(()=>{
+    // This would compile all solved modules
+    BuilderInstance.Compile().then((result) => {
+        // Link everything into executable
+        BuilderInstance.Finalize().then(()=>{
             console.log(chalk.bold('======== SUCCESS ========'));
-        })
-        .catch((reason)=>{
+        }).catch((reason)=>{
             console.log(reason);
+            console.log(chalk.bold.redBright('======== FAILED ========'));
         });
-
-        
+    }).catch((reason)=>{
+        console.log(reason);
+        console.log(chalk.bold.redBright('======== FAILED ========'));
     });
     //console.log(chalk.bold('======== FINISHED ========'));
 });

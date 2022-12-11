@@ -15,10 +15,11 @@ import { Stage, StagedModuleInfo, Timeline } from "../Types/Timeline";
 // TODO: Investigate Chronological Leak as case of Circular Dependency
 
 export default class Solver {
-    Timeline: Timeline = {Stages: []};
+    Timeline: Timeline = {Stages: [], Final: []};
     InteropFrame: {Branches: Stage | any, Leaves: Stage[], Staged: StagedModuleInfo[]} = {Branches: null, Leaves: [], Staged: []}
     Objects: MultiModuleList;
     CompilationTarget: Target;
+    FinalsRequired: string[];
     
     constructor(target: Target, crawler: MultiModuleList) {
         this.Objects = crawler;
@@ -77,18 +78,24 @@ export default class Solver {
             exit(-1);
         }
         let rulesDependencies: string[] = [];
-        rulesDependencies.concat((this.Objects.Project.Rules as Rules).Modules);
+
+        rulesDependencies = rulesDependencies.concat((this.Objects.Project.Rules as Rules).Modules);
         if(this.CompilationTarget.includeEngine) {
-            rulesDependencies.concat((this.Objects.Engine.Rules as Rules).Modules);
+            rulesDependencies = rulesDependencies.concat(rulesDependencies, (this.Objects.Engine.Rules as Rules).Modules);
         }
 
-
+        this.FinalsRequired = rulesDependencies;
     }
 
     SolveInteropFrame() {
         this.InteropFrame.Branches.Modules.forEach((mod: StagedModuleInfo) => {
             //console.log(chalk.bold("[LOG] ") + `Solving: ${mod.Name}`);
             //console.log(mod);
+            
+            if(this.FinalsRequired.includes(mod.Name)) {
+                this.Timeline.Final.push(mod);
+                this.FinalsRequired.splice(this.FinalsRequired.indexOf(mod.Name), 1);
+            }
 
             if(mod.Type == "Deploy") {
                 this.InteropFrame.Staged.push(mod);
@@ -240,6 +247,14 @@ export default class Solver {
             this.SolveInteropFrame();
 
             this.PushInteropFrame();
+        }
+
+        if(this.FinalsRequired.length > 0) {
+            console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright(".rules.js file requires modules, that do not exist!"));
+            this.FinalsRequired.forEach((obj)=>{
+                console.log(chalk.redBright(`\t${obj}`));
+            });
+            exit(-1);
         }
 
         console.log(chalk.bold(`Solved ${this.Timeline.Stages.length} stages`));

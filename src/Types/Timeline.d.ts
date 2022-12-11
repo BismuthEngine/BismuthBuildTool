@@ -23,4 +23,5 @@ interface Stage {
 interface Timeline {
     // Compilation Queue
     Stages: Stage[],
+    Final: StagedModuleInfo[]
 }

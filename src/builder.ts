@@ -1,6 +1,6 @@
 import Module from "./Classes/Module.js";
 import Deploy from "./Classes/Deploy.js";
-import { Stage, StagedModuleInfo } from "./Types/Timeline";
+import { Stage, StagedModuleInfo, Timeline } from "./Types/Timeline";
 import { BuilderFrame } from "./Types/BuilderFrame";
 import chalk from "chalk";
 import { join } from "path";
@@ -18,10 +18,6 @@ export class CompileWorker {
         throw "Unimplemented";
     }
 
-    SetEntry(path: string) {
-        throw "Unimplemented";
-    }
-
     AddModule(module: StagedModuleInfo) {
         throw "Unimplemented";
     }
@@ -36,12 +32,14 @@ export class CompileWorker {
 }
 
 export default class Builder {
-    constructor(target: Target) {
+    constructor(target: Target, timeline: Timeline) {
         this.CompilationTarget = target;
+        this.Timeline = timeline;
         this.Frame = {CurrentStage: null, PreviousStages: []};
     }
 
     CompilationTarget: Target;
+    Timeline: Timeline;
     Frame: BuilderFrame;
 
     PushStage(stage: Stage) {
@@ -105,38 +103,11 @@ export default class Builder {
     }
 
     async Compile(): Promise<void> {
-        return new Promise<void>((res, rej)=> {
-            //console.log(this.Frame);
-        for(let moduleIdx = 0; moduleIdx < this.Frame.CurrentStage.Modules.length; moduleIdx++) {
-            let module: StagedModuleInfo = this.Frame.CurrentStage.Modules[moduleIdx];
+        
+    }
 
-            //console.log(`Compiling: ${module.Name}`);
-
-            if(!module.UpToDate && (module.Type == "Module" || ((module.Type == "Deploy") ? (<Deploy>module.Module).Compiled : false))) {
-                let worker = this.CreateCompileWorker();
-                worker.SetRoot(module);
-                // Add dependencies to pipeline
-                this.ResolveAllDependencies(module, worker)
-                .then(()=>{
-                    // As soon as dependencies resolved - compile
-                    worker.Compile()
-                    .then(() => {
-                        console.log(chalk.greenBright.bold("[OK] ") + chalk.greenBright(`Compiled: ${module.Name}`));
-                        res();
-                    })
-                    .catch((reason: CompilationError) => {
-                        console.log(chalk.redBright.bold(`[ERROR in module ${module.Name}] `) + reason);
-                        switch (reason) {
-                        }
-                        exit(-1);
-                    });
-                })
-                .catch((reason) => {
-                    console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright(`Module ${module.Name}: Failed resolving dependency "${reason}"! Solver pass succeeded, so it must be our bad, see https://github.com/`));
-                    exit(-1);
-                });
-            }
-        }
-        });
+    // All modules in Timeline are compiled. Now build executable.
+    async Finalize(): Promise<void> {
+        
     }
 }

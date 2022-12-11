@@ -82,4 +82,13 @@ export default class Utils {
                 return target.projectPath
         }
     }
+
+    static GetModuleIntermediateBase(module: StagedModuleInfo, target: Target): string {
+        switch(module.Domain) {
+            case "Engine":
+                return resolve(target.enginePath, "/Intermediate/Modules/", module.Name)
+            case "Project":
+                return resolve(target.projectPath, "/Intermediate/Modules/", module.Name)
+        }
+    }
 }

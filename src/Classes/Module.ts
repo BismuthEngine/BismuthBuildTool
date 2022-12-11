@@ -14,7 +14,7 @@ export default class Module {
     // Specifies files to include into build pipeline
     Exports: string[] = []
     // Module(.cppm) that would be compiled as a module
-    ModuleEntry: string = ""
+    ModuleEntry: string
     // C++20 Modules support, if false, compile legacy (excludes from BMT)
     Module: boolean = true
     // Legacy compilation files
