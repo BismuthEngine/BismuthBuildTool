@@ -35,17 +35,12 @@ export default class Builder {
     constructor(target: Target, timeline: Timeline) {
         this.CompilationTarget = target;
         this.Timeline = timeline;
-        this.Frame = {CurrentStage: null, PreviousStages: []};
+        this.Frame = {CurrentStage: null, PreviousModules: []};
     }
 
     CompilationTarget: Target;
     Timeline: Timeline;
     Frame: BuilderFrame;
-
-    PushStage(stage: Stage) {
-        this.Frame.PreviousStages.push(this.Frame.CurrentStage);
-        this.Frame.CurrentStage = stage;
-    }
 
     SaveHash(module: StagedModuleInfo) {
         let IntermediatePath: string = "";
@@ -69,16 +64,11 @@ export default class Builder {
         let retmodule: StagedModuleInfo | undefined = undefined;
 
         // Search
-        this.Frame.PreviousStages.forEach(stage => {
-            if(stage) {
-                stage.Modules.forEach(module => {
-                    if(module.Name === dependencyName) {
-                        retmodule = module;
-                        return;
-                    }
-                });
+        this.Frame.PreviousModules.forEach(module => {
+            if(module.Name === dependencyName) {
+                retmodule = module;
+                return;
             }
-            if(retmodule != undefined) return;
         });
 
         if(retmodule === undefined) 
@@ -103,11 +93,34 @@ export default class Builder {
     }
 
     async Compile(): Promise<void> {
-        
+        this.Timeline.Stages.forEach((stage) => {
+            stage.Modules.forEach(module => {
+                let worker = this.CreateCompileWorker();
+                worker.SetRoot(module);
+                this.ResolveAllDependencies(module, worker)
+                .then(()=>{
+                    // compile module (would compile it & link with previous modules)
+                    worker.Compile()
+                    .then(()=>{
+                      this.Frame.PreviousModules.push(module);
+                      // TODO beautify
+                      console.log("Compile");
+                    })
+                    .catch((reason)=>{
+                        console.log(reason);
+                        exit(-1);
+                    });
+                })
+                .catch((reason)=>{
+                    console.log(reason);
+                    exit(-1);
+                });
+            });
+        });
     }
 
     // All modules in Timeline are compiled. Now build executable.
-    async Finalize(): Promise<void> {
-        
+    async Finalize(output: string|undefined = undefined): Promise<void> {
+
     }
 }

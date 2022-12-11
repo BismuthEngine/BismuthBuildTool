@@ -1,6 +1,6 @@
-import { Stage } from "./Timeline";
+import { Stage, StagedModuleInfo } from "./Timeline";
 
 interface BuilderFrame {
     CurrentStage: Stage | any,
-    PreviousStages: Stage[]
+    PreviousModules: StagedModuleInfo[]
 }
