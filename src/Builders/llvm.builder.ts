@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
 import { accessSync, constants, mkdirSync } from "fs";
 import { dirname, resolve } from "path";
 import Builder, { CompileWorker } from "../builder.js";
@@ -54,6 +54,81 @@ export class LLVMCompileWorker extends CompileWorker {
         this.linkerRequests.push(req);
     }
 
+    CmdModifyDependencies(): string {
+        let Cmd: string = " ";
+        this.Modules.forEach(mod => {
+            if(mod.Type == "Deploy") {
+                // Deploy modifications
+                let deploy: Deploy = <Deploy>(mod.Module);
+
+                deploy.LinkerOptions.forEach((opt) => {
+                    Cmd += `-l${opt} `;
+                });
+
+                deploy.Includes.forEach((inc) => {
+                    Cmd += `-I${resolve(mod.Path, inc)} `;
+                });
+
+                deploy.StaticLibs.forEach((so) => {
+                    Cmd += `${resolve(mod.Path, so)} `;
+                });
+            } else {
+                // Module modifications
+                let module: Module = <Module>(mod.Module);
+                if(module.Includes){
+                    module.Includes.forEach((inc) => {
+                        Cmd += `-I${resolve(mod.Path, inc)} `;
+                    });
+                }
+
+                const ModuleLibPath = resolve(Utils.GetRootFolderForModule(mod, this.Target), "./Intermediate/Modules/", `./${mod.Name}.lib`) + " ";
+
+                // Sanity check
+                try {
+                    //accessSync(ModuleLibPath, constants.R_OK);
+
+                    Cmd += ModuleLibPath; 
+                } catch(err) {
+                    throw `Couldn't find compiled module at path: ${ModuleLibPath}`;
+                } 
+            }
+        })
+
+        if(this.root.Module.LinkerOptions) {
+            this.root.Module.LinkerOptions.forEach((opt) => {
+                Cmd += `-l${opt} `;
+            });
+        }
+
+        return Cmd;
+    }
+
+    IsModule() {
+        return (<Module>(this.root.Module)).Module == true || (<Module>(this.root.Module)).Module == undefined;
+    }
+
+    GetRootCompilationFiles() {
+        let CppmFile: string;
+
+        // if module should be treated as C++20 module, we find .cppm file
+        if(this.IsModule()) {
+
+            if((<Module>(this.root.Module)).ModuleEntry) {
+                CppmFile = (<Module>(this.root.Module)).ModuleEntry;
+            } else {
+                CppmFile = this.root.Name + ".cppm";
+            }
+
+        } 
+        // If it's pre-processor's code, we should search for all .cpp files
+        else {
+            CppmFile = "";
+            throw "LLVM.Builder.ts: GetRootCompilationFiles()";
+        }
+
+        return CppmFile
+    }
+
     async Compile(): Promise<void> {
         if(this.root == undefined)
             return new Promise<void>(async (res, rej) => {
@@ -62,6 +137,7 @@ export class LLVMCompileWorker extends CompileWorker {
         else
             return new Promise<void>(async (res, rej) => {
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), "./Intermediate/Modules/"), {recursive: true});
+
 
                 let Cmd = `${this.CompBase} ${this.Target.debug ? "-g -O0 " : "-O3 "} `;
 
@@ -72,86 +148,31 @@ export class LLVMCompileWorker extends CompileWorker {
                 }
                 Cmd += `-fprebuilt-module-path=${resolve(this.Target.projectPath, "./Intermediate/Modules/")} `;
 
-                this.Modules.forEach(mod => {
-                    if(mod.Type == "Deploy") {
-                        // Deploy modifications
-                        let deploy: Deploy = <Deploy>(mod.Module);
+                Cmd += this.CmdModifyDependencies();
 
-                        deploy.LinkerOptions.forEach((opt) => {
-                            Cmd += `-l${opt} `;
-                        });
+                Cmd += resolve(dirname(this.root.Path), `./${this.GetRootCompilationFiles()} `) + " ";
 
-                        deploy.Includes.forEach((inc) => {
-                            Cmd += `-I${resolve(mod.Path, inc)} `;
-                        });
-
-                        deploy.StaticLibs.forEach((so) => {
-                            Cmd += `${resolve(mod.Path, so)} `;
-                        });
-                    } else {
-                        // Module modifications
-                        let module: Module = <Module>(mod.Module);
-                        if(module.Includes){
-                            module.Includes.forEach((inc) => {
-                                Cmd += `-I${resolve(mod.Path, inc)} `;
-                            });
-                        }
-
-                        const ModuleLibPath = resolve(Utils.GetRootFolderForModule(mod, this.Target), "./Intermediate/Modules/", `./${mod.Name}.lib`) + " ";
-
-                        // Sanity check
-                        try {
-                            //accessSync(ModuleLibPath, constants.R_OK);
-
-                            Cmd += ModuleLibPath; 
-                        } catch(err) {
-                            rej(`Couldn't find compiled module at path: ${ModuleLibPath}`);
-                        } 
-                    }
-                })
-
-                if(this.root.Module.LinkerOptions) {
-                    this.root.Module.LinkerOptions.forEach((opt) => {
-                        Cmd += `-l${opt} `;
-                    });
-                }
-
-                let CppmFile: string;
-                // if module should be treated as C++20 module, we find .cppm file
-                if((<Module>(this.root.Module)).Module) {
-                    if((<Module>(this.root.Module)).ModuleEntry) {
-                        CppmFile = (<Module>(this.root.Module)).ModuleEntry;
-                    } else {
-                        CppmFile = this.root.Name + ".cppm";
-                    }
-                } 
-                // If it's pre-processor's code, we should search for all .cpp files
-                else {
-                    CppmFile = "";
-                }
-
-                Cmd += resolve(dirname(this.root.Path), `./${CppmFile} `) + " ";
-
+                // Resolves dependencies for [.LIB] files
                 for(let modlIdx = 0; modlIdx < this.Modules.length; modlIdx++) {
-                    Cmd += resolve(Utils.GetRootFolderForModule(this.root, this.Target), "./Intermediate/Modules/", `./${this.Modules[modlIdx].Name}.lib`) + " ";
-                    lldCmd += resolve(Utils.GetRootFolderForModule(this.root, this.Target), "./Intermediate/Modules/", `./${this.Modules[modlIdx].Name}.lib`) + " ";
+                    Cmd += resolve(Utils.GetRootFolderForModule(this.Modules[modlIdx], this.Target), 
+                                        "./Intermediate/Modules/", 
+                                        `./${this.Modules[modlIdx].Name}.lib`) + " ";
+                    lldCmd += resolve(Utils.GetRootFolderForModule(this.Modules[modlIdx], this.Target), 
+                                        "./Intermediate/Modules/", 
+                                        `./${this.Modules[modlIdx].Name}.lib`) + " ";
                 }
 
                 // Precompile module (if should)
-                if((<Module>(this.root.Module)).Module) {
+                if(this.IsModule()) {
                     let pcmCmd = Cmd + `--precompile -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.pcm `;
                     
                     //console.log(pcmCmd);
                     
-                    exec(pcmCmd, (error, stdout, stderr) => {
-                        console.log(stdout);
-                    
-                        if(error) {
-                            rej(stderr);
-                        } else {
-                            res();
-                        }
-                    });
+                    try {
+                        execSync(pcmCmd, {"encoding": "utf8", stdio: 'pipe'});
+                    } catch( stderr ) {
+                        rej(stderr.stderr);
+                    }
                 }
 
                 // Compile object file
@@ -160,34 +181,28 @@ export class LLVMCompileWorker extends CompileWorker {
 
                 //console.log(libCmd);
 
-                exec(libCmd, (error, stdout, stderr) => {
-                    console.log(stdout);
-
-                    if(error) {
-                        rej(stderr);
-                    } else {
-                        res();
-                    }
-                });
+                try {
+                    execSync(libCmd, {"encoding": "utf8", stdio: 'pipe'});
+                } catch( stderr ) {
+                    rej(stderr.stderr);
+                }
 
                 // Link against dependencies (temporarilly disabled by && 0, thanks to LINK.EXE)
                 if(this.Modules.length > 0 && 0) {
                     lldCmd += ` -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.lib`;
-                    console.log(lldCmd);
+                    //console.log(lldCmd);
 
-                    exec(lldCmd, (error, stdout, stderr) => {
-                        console.log(stdout);
-
-                        if(error) {
-                            rej(stderr);
-                        } else {
-                            res();
-                        }
-                    });
+                    try {
+                        execSync(lldCmd, {"encoding": "utf8", stdio: 'pipe'});
+                    } catch( stderr ) {
+                        rej(stderr.stderr);
+                    }
                 }
 
                 // Save hash
-
+                
+                // Return
+                res();
             })
     }
 }
