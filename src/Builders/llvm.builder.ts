@@ -8,6 +8,26 @@ import Module from "../Classes/Module.js";
 import { StagedModuleInfo } from "../Types/Timeline.js";
 import Utils from "../utils.js";
 
+class LLVMLinker {
+    static Relocatable(target: Target) {
+        switch(target.platform) {
+            case "Win32": 
+                return " /lib ";
+            case "Unix":
+                return " -r ";
+        }
+    }
+
+    static Output(target: Target) {
+        switch(target.platform) {
+            case "Win32": 
+                return " /out:";
+            case "Unix":
+                return " -o ";
+        }
+    }
+}
+
 export class LLVMCompileWorker extends CompileWorker {
 
     root: StagedModuleInfo;
@@ -23,13 +43,13 @@ export class LLVMCompileWorker extends CompileWorker {
 
         switch(target.platform) {
             case "Win32": 
-                this.LDBase = "lld-link -r ";
+                this.LDBase = "lld-link ";
                 break;
             case "Unix": 
-                this.LDBase = "ld.lld -r ";
+                this.LDBase = "ld.lld ";
                 break;
             case "Mach": 
-                this.LDBase = "ld64.lld -r ";
+                this.LDBase = "ld64.lld ";
                 break;
         }
     }
@@ -138,10 +158,9 @@ export class LLVMCompileWorker extends CompileWorker {
             return new Promise<void>(async (res, rej) => {
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), "./Intermediate/Modules/"), {recursive: true});
 
-
                 let Cmd = `${this.CompBase} ${this.Target.debug ? "-g -O0 " : "-O3 "} `;
 
-                let lldCmd = this.LDBase + ` `;
+                let lldCmd = this.LDBase + LLVMLinker.Relocatable(this.Target);
 
                 if(this.Target.includeEngine) {
                     Cmd += `-fprebuilt-module-path=${resolve(this.Target.enginePath, "./Intermediate/Modules/")} `;
@@ -187,9 +206,9 @@ export class LLVMCompileWorker extends CompileWorker {
                     rej(stderr.stderr);
                 }
 
-                // Link against dependencies (temporarilly disabled by && 0, thanks to LINK.EXE)
-                if(this.Modules.length > 0 && 0) {
-                    lldCmd += ` -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.lib`;
+                // Link against dependencies
+                if(this.Modules.length > 0) {
+                    lldCmd += ` ${LLVMLinker.Output(this.Target)}${Utils.GetModuleIntermediateBase(this.root, this.Target)}.lib`;
                     //console.log(lldCmd);
 
                     try {

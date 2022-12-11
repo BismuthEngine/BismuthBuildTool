@@ -123,7 +123,7 @@ export default class Builder {
                     // Save processed module into Build Frame
                     this.Frame.PreviousModules.push(module);
 
-                    console.log(chalk.bold.greenBright.bgWhite("[OK] ") + chalk.greenBright.bgWhite(`Compiled: ${module.Name}`));
+                    console.log(chalk.bold.greenBright.bold("[OK] ") + chalk.greenBright(`Compiled: ${module.Name}`));
                 }
             };
         };
