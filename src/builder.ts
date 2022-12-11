@@ -116,7 +116,7 @@ export default class Builder {
                     // compile module (would compile it & link with previous modules)
                     await worker.Compile()
                     .catch((reason)=>{
-                        console.log(chalk.redBright.bold('[ERROR] ') + reason);
+                        console.log(chalk.redBright.bold(`[ERROR compiling ${module.Name}] `) + reason);
                         exit(-1);
                     });
 

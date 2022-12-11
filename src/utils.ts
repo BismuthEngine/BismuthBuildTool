@@ -71,7 +71,11 @@ export default class Utils {
     }
 
     static GetIntermediateFolder(root: string): string {
-        return pathToFileURL(resolve(root, "/Intermediate/")).toString();
+        return pathToFileURL(resolve(root, "./Intermediate/")).toString();
+    }
+
+    static GetModuleFolder(path: string): string {
+        return path.substring(0, path.lastIndexOf("/"));
     }
 
     static GetRootFolderForModule(module: StagedModuleInfo, target: Target): string {
@@ -86,9 +90,9 @@ export default class Utils {
     static GetModuleIntermediateBase(module: StagedModuleInfo, target: Target): string {
         switch(module.Domain) {
             case "Engine":
-                return resolve(target.enginePath, "/Intermediate/Modules/", module.Name)
+                return resolve(target.enginePath, "./Intermediate/Modules/", module.Name)
             case "Project":
-                return resolve(target.projectPath, "/Intermediate/Modules/", module.Name)
+                return resolve(target.projectPath, "./Intermediate/Modules/", module.Name)
         }
     }
 }

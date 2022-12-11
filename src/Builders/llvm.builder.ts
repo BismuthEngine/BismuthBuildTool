@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { exec } from "child_process";
-import { accessSync, constants } from "fs";
-import { resolve } from "path";
+import { accessSync, constants, mkdirSync } from "fs";
+import { dirname, resolve } from "path";
 import Builder, { CompileWorker } from "../builder.js";
 import Deploy from "../Classes/Deploy.js";
 import Module from "../Classes/Module.js";
@@ -55,69 +55,113 @@ export class LLVMCompileWorker extends CompileWorker {
     }
 
     async Compile(): Promise<void> {
-        return new Promise<void>(async (res, rej) => {
-            let Cmd = `clang++ ${this.Target.debug ? "-g -O0 " : "-O3 "} `;
-            if(this.Target.includeEngine) {
-                Cmd += `-fprebuilt-module-path=${resolve(Utils.GetIntermediateFolder(this.Target.enginePath), "/Modules/")} `;
-            }
-            Cmd += `-fprebuilt-module-path=${resolve(Utils.GetIntermediateFolder(this.Target.projectPath), "/Modules/")} `;
+        if(this.root == undefined)
+            return new Promise<void>(async (res, rej) => {
+                rej("Root was not set for the compiler");
+            });
+        else
+            return new Promise<void>(async (res, rej) => {
+                mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), "./Intermediate/Modules/"), {recursive: true});
 
-            this.Modules.forEach(mod => {
-                if(mod.Type == "Deploy") {
-                    // Deploy modifications
-                    let deploy: Deploy = <Deploy>(mod.Module);
+                let Cmd = `${this.CompBase} ${this.Target.debug ? "-g -O0 " : "-O3 "} `;
+                if(this.Target.includeEngine) {
+                    Cmd += `-fprebuilt-module-path=${resolve(this.Target.enginePath, "./Intermediate/Modules/")} `;
+                }
+                Cmd += `-fprebuilt-module-path=${resolve(this.Target.projectPath, "./Intermediate/Modules/")} `;
 
-                    deploy.LinkerOptions.forEach((opt) => {
+                this.Modules.forEach(mod => {
+                    if(mod.Type == "Deploy") {
+                        // Deploy modifications
+                        let deploy: Deploy = <Deploy>(mod.Module);
+
+                        deploy.LinkerOptions.forEach((opt) => {
+                            Cmd += `-l${opt} `;
+                        });
+
+                        deploy.Includes.forEach((inc) => {
+                            Cmd += `-I${resolve(mod.Path, inc)} `;
+                        });
+
+                        deploy.StaticLibs.forEach((so) => {
+                            Cmd += `${resolve(mod.Path, so)} `;
+                        });
+                    } else {
+                        // Module modifications
+                        let module: Module = <Module>(mod.Module);
+
+                        module.Includes.forEach((inc) => {
+                            Cmd += `-I${resolve(mod.Path, inc)} `;
+                        });
+
+                        const ModuleLibPath = resolve(Utils.GetRootFolderForModule(mod, this.Target), "/Intermediate/Modules/", `${mod.Name}.lib `);
+
+                        // Sanity check
+                        try {
+                            accessSync(ModuleLibPath, constants.R_OK);
+
+                            Cmd += ModuleLibPath; 
+                        } catch(err) {
+                            rej(`Couldn't find compiled module at path: ${ModuleLibPath}`);
+                        } 
+                    }
+                })
+
+                if(this.root.Module.LinkerOptions) {
+                    this.root.Module.LinkerOptions.forEach((opt) => {
                         Cmd += `-l${opt} `;
                     });
-
-                    deploy.Includes.forEach((inc) => {
-                        Cmd += `-I${resolve(mod.Path, inc)} `;
-                    });
-
-                    deploy.StaticLibs.forEach((so) => {
-                        Cmd += `${resolve(mod.Path, so)} `;
-                    });
-                } else {
-                    // Module modifications
-                    let module: Module = <Module>(mod.Module);
-
-                    module.Includes.forEach((inc) => {
-                        Cmd += `-I${resolve(mod.Path, inc)} `;
-                    });
-
-                    const ModuleLibPath = resolve(Utils.GetRootFolderForModule(mod, this.Target), "/Intermediate/Modules/", `${mod.Name}.lib `);
-
-                    // Sanity check
-                    try {
-                        accessSync(ModuleLibPath, constants.R_OK);
-
-                        Cmd += ModuleLibPath; 
-                    } catch(err) {
-                        rej(`Couldn't find compiled module at path: ${ModuleLibPath}`);
-                    } 
                 }
-            })
-            if(this.root && this.root.Module.LinkerOptions) {
-                this.root.Module.LinkerOptions.forEach((opt) => {
-                    Cmd += `-l${opt} `;
+
+                let CppmFile: string;
+                if((<Module>(this.root.Module)).ModuleEntry) {
+                    CppmFile = (<Module>(this.root.Module)).ModuleEntry;
+                } else {
+                    CppmFile = this.root.Name + ".cppm";
+                }
+
+                Cmd += resolve(dirname(this.root.Path), `./${CppmFile} `) + " ";
+
+                for(let modlIdx = 0; modlIdx < this.Modules.length; modlIdx++) {
+                    Cmd += resolve(Utils.GetRootFolderForModule(this.root, this.Target), "./Intermediate/Modules/", `./${this.Modules[modlIdx].Name}.lib`);
+                }
+
+                // Precompile module
+
+                let pcmCmd = Cmd + `--precompile -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.pcm`;
+
+                //console.log(pcmCmd);
+
+                exec(pcmCmd, (error, stdout, stderr) => {
+                    console.log(stdout);
+
+                    if(error) {
+                        rej(stderr);
+                    } else {
+                        res();
+                    }
                 });
 
-                Cmd += resolve(this.root.Path, ((<Module>this.root.Module).ModuleEntry ? `${this.root.Name}.cppm` : (<Module>this.root.Module).ModuleEntry)) + " ";
+                // Compile object file
 
-                Cmd+= resolve(Utils.GetRootFolderForModule(this.root, this.Target), "/Intermediate/Modules/", `${this.Modules}`);
-            }
+                let libCmd = Cmd + `-c -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.lib`;
 
-            exec(Cmd, (error, stdout, stderr) => {
-                console.log(stdout);
+                //console.log(libCmd);
 
-                if(error) {
-                    rej(stderr);
-                } else {
-                    res();
-                }
-            });
-        })
+                exec(libCmd, (error, stdout, stderr) => {
+                    console.log(stdout);
+
+                    if(error) {
+                        rej(stderr);
+                    } else {
+                        res();
+                    }
+                });
+
+                // Link against dependencies
+
+                // Save hash
+
+            })
     }
 }
 
