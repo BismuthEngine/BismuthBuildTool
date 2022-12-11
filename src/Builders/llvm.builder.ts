@@ -64,6 +64,9 @@ export class LLVMCompileWorker extends CompileWorker {
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), "./Intermediate/Modules/"), {recursive: true});
 
                 let Cmd = `${this.CompBase} ${this.Target.debug ? "-g -O0 " : "-O3 "} `;
+
+                let lldCmd = this.LDBase + ` `;
+
                 if(this.Target.includeEngine) {
                     Cmd += `-fprebuilt-module-path=${resolve(this.Target.enginePath, "./Intermediate/Modules/")} `;
                 }
@@ -88,16 +91,17 @@ export class LLVMCompileWorker extends CompileWorker {
                     } else {
                         // Module modifications
                         let module: Module = <Module>(mod.Module);
+                        if(module.Includes){
+                            module.Includes.forEach((inc) => {
+                                Cmd += `-I${resolve(mod.Path, inc)} `;
+                            });
+                        }
 
-                        module.Includes.forEach((inc) => {
-                            Cmd += `-I${resolve(mod.Path, inc)} `;
-                        });
-
-                        const ModuleLibPath = resolve(Utils.GetRootFolderForModule(mod, this.Target), "/Intermediate/Modules/", `${mod.Name}.lib `);
+                        const ModuleLibPath = resolve(Utils.GetRootFolderForModule(mod, this.Target), "./Intermediate/Modules/", `./${mod.Name}.lib`) + " ";
 
                         // Sanity check
                         try {
-                            accessSync(ModuleLibPath, constants.R_OK);
+                            //accessSync(ModuleLibPath, constants.R_OK);
 
                             Cmd += ModuleLibPath; 
                         } catch(err) {
@@ -113,33 +117,42 @@ export class LLVMCompileWorker extends CompileWorker {
                 }
 
                 let CppmFile: string;
-                if((<Module>(this.root.Module)).ModuleEntry) {
-                    CppmFile = (<Module>(this.root.Module)).ModuleEntry;
-                } else {
-                    CppmFile = this.root.Name + ".cppm";
+                // if module should be treated as C++20 module, we find .cppm file
+                if((<Module>(this.root.Module)).Module) {
+                    if((<Module>(this.root.Module)).ModuleEntry) {
+                        CppmFile = (<Module>(this.root.Module)).ModuleEntry;
+                    } else {
+                        CppmFile = this.root.Name + ".cppm";
+                    }
+                } 
+                // If it's pre-processor's code, we should search for all .cpp files
+                else {
+                    CppmFile = "";
                 }
 
                 Cmd += resolve(dirname(this.root.Path), `./${CppmFile} `) + " ";
 
                 for(let modlIdx = 0; modlIdx < this.Modules.length; modlIdx++) {
-                    Cmd += resolve(Utils.GetRootFolderForModule(this.root, this.Target), "./Intermediate/Modules/", `./${this.Modules[modlIdx].Name}.lib`);
+                    Cmd += resolve(Utils.GetRootFolderForModule(this.root, this.Target), "./Intermediate/Modules/", `./${this.Modules[modlIdx].Name}.lib`) + " ";
+                    lldCmd += resolve(Utils.GetRootFolderForModule(this.root, this.Target), "./Intermediate/Modules/", `./${this.Modules[modlIdx].Name}.lib`) + " ";
                 }
 
-                // Precompile module
-
-                let pcmCmd = Cmd + `--precompile -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.pcm`;
-
-                //console.log(pcmCmd);
-
-                exec(pcmCmd, (error, stdout, stderr) => {
-                    console.log(stdout);
-
-                    if(error) {
-                        rej(stderr);
-                    } else {
-                        res();
-                    }
-                });
+                // Precompile module (if should)
+                if((<Module>(this.root.Module)).Module) {
+                    let pcmCmd = Cmd + `--precompile -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.pcm `;
+                    
+                    //console.log(pcmCmd);
+                    
+                    exec(pcmCmd, (error, stdout, stderr) => {
+                        console.log(stdout);
+                    
+                        if(error) {
+                            rej(stderr);
+                        } else {
+                            res();
+                        }
+                    });
+                }
 
                 // Compile object file
 
@@ -157,7 +170,21 @@ export class LLVMCompileWorker extends CompileWorker {
                     }
                 });
 
-                // Link against dependencies
+                // Link against dependencies (temporarilly disabled by && 0, thanks to LINK.EXE)
+                if(this.Modules.length > 0 && 0) {
+                    lldCmd += ` -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.lib`;
+                    console.log(lldCmd);
+
+                    exec(lldCmd, (error, stdout, stderr) => {
+                        console.log(stdout);
+
+                        if(error) {
+                            rej(stderr);
+                        } else {
+                            res();
+                        }
+                    });
+                }
 
                 // Save hash
 
