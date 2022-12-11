@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { exec, execSync } from "child_process";
-import { accessSync, constants, mkdirSync } from "fs";
+import { accessSync, constants, mkdirSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import Builder, { CompileWorker } from "../builder.js";
 import Deploy from "../Classes/Deploy.js";
@@ -228,11 +228,12 @@ export class LLVMCompileWorker extends CompileWorker {
                 }
 
                 // Save hash
+                writeFileSync(`${Utils.GetModuleIntermediateBase(this.root, this.Target)}.hash`, this.root.ActualHash, {"encoding": "utf8"});
                 
                 // Return
                 res();
             })
-    }
+        }
 }
 
 export default class LLVMBuilder extends Builder {

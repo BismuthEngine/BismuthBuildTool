@@ -105,25 +105,30 @@ export default class Builder {
                 let module = stage.Modules[moduleIdx];
 
                 if(module.Type != "Deploy") {
-                    let worker = this.CreateCompileWorker();
-                    worker.SetRoot(module);
-                    await this.ResolveAllDependencies(module, worker)
-                    .catch((reason)=>{
-                        console.log(chalk.redBright.bold('[ERROR] ') + chalk.redBright(`Was not able to resolve dependency for module "${module.Name}": ${reason}`));
-                        exit(-1);
-                    });
+                    if(!module.UpToDate) {
+                        let worker = this.CreateCompileWorker();
+                        worker.SetRoot(module);
+                        await this.ResolveAllDependencies(module, worker)
+                        .catch((reason)=>{
+                            console.log(chalk.redBright.bold('[ERROR] ') + chalk.redBright(`Was not able to resolve dependency for module "${module.Name}": ${reason}`));
+                            exit(-1);
+                        });
 
-                    // compile module (would compile it & link with previous modules)
-                    await worker.Compile()
-                    .catch((reason)=>{
-                        console.log(chalk.redBright.bold(`[ERROR compiling ${module.Name}] `) + reason);
-                        exit(-1);
-                    });
+                        // compile module (would compile it & link with previous modules)
+                        await worker.Compile()
+                        .catch((reason)=>{
+                            console.log(chalk.redBright.bold(`[ERROR compiling ${module.Name}] `) + reason);
+                            exit(-1);
+                        });
 
-                    // Save processed module into Build Frame
-                    this.Frame.PreviousModules.push(module);
+                        // Save processed module into Build Frame
+                        this.Frame.PreviousModules.push(module);
 
-                    console.log(chalk.bold.greenBright.bold("[OK] ") + chalk.greenBright(`Compiled: ${module.Name}`));
+                        console.log(chalk.bold.greenBright.bold("[OK] ") + chalk.greenBright(`Compiled: ${module.Name}`));
+                    } else {
+                        // Save processed module into Build Frame
+                        this.Frame.PreviousModules.push(module);
+                    }
                 }
             };
         };
