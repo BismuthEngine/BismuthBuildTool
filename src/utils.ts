@@ -50,7 +50,7 @@ export default class Utils {
         return JSON.parse(readFileSync(path).toString());
     }
 
-    static GetFilesFiltered(path: string, filter: RegExp): string[] {
+    static GetFilesFiltered(path: string, filter: RegExp, recursive: boolean = false): string[] {
         if (!existsSync(path)) {
             throw `Doesn't exist`;
         }
@@ -62,6 +62,9 @@ export default class Utils {
             var filename = resolve(path, files[i]);
             var stat = lstatSync(filename);
             if (stat.isDirectory()) {
+                if(recursive) {
+                    this.GetFilesFiltered(filename, filter, recursive);
+                }
             } else if (filter.test(filename)) {
                 retfiles.push(filename);
             };

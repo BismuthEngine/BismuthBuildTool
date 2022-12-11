@@ -143,7 +143,13 @@ export class LLVMCompileWorker extends CompileWorker {
         // If it's pre-processor's code, we should search for all .cpp files
         else {
             CppmFile = "";
-            throw "LLVM.Builder.ts: GetRootCompilationFiles()";
+
+            Utils.GetFilesFiltered(dirname(this.root.Path), /.cpp/, true).forEach(file => {
+                CppmFile += ` ${file} `
+            });
+
+            return CppmFile;
+            //throw "LLVM.Builder.ts: GetRootCompilationFiles()";
         }
 
         return CppmFile
@@ -206,9 +212,13 @@ export class LLVMCompileWorker extends CompileWorker {
                     rej(stderr.stderr);
                 }
 
-                // Link against dependencies
+                // Link against dependencies 
+                /*
                 if(this.Modules.length > 0) {
-                    lldCmd += ` ${LLVMLinker.Output(this.Target)}${Utils.GetModuleIntermediateBase(this.root, this.Target)}.lib`;
+                    const libName = `${Utils.GetModuleIntermediateBase(this.root, this.Target)}.lib`;
+
+                    lldCmd += ` ${libName}` +
+                              ` ${LLVMLinker.Output(this.Target)}${libName}.lib`;
                     //console.log(lldCmd);
 
                     try {
@@ -216,7 +226,7 @@ export class LLVMCompileWorker extends CompileWorker {
                     } catch( stderr ) {
                         rej(stderr.stderr);
                     }
-                }
+                }*/
 
                 // Save hash
                 
