@@ -213,11 +213,10 @@ export class LLVMCompileWorker extends CompileWorker {
                 }
 
                 // Link against dependencies 
-                /*
                 if(this.Modules.length > 0) {
-                    const libName = `${Utils.GetModuleIntermediateBase(this.root, this.Target)}.lib`;
+                    const libName = `${Utils.GetModuleIntermediateBase(this.root, this.Target)}`;
 
-                    lldCmd += ` ${libName}` +
+                    lldCmd += ` ${libName}.lib` +
                               ` ${LLVMLinker.Output(this.Target)}${libName}.lib`;
                     //console.log(lldCmd);
 
@@ -226,7 +225,7 @@ export class LLVMCompileWorker extends CompileWorker {
                     } catch( stderr ) {
                         rej(stderr.stderr);
                     }
-                }*/
+                }
 
                 // Save hash
                 
@@ -244,7 +243,29 @@ export default class LLVMBuilder extends Builder {
 
     async Finalize(): Promise<void> {
         return new Promise<void>((res, rej) => {
+            let Cmd = "clang++ -std=c++20 -fmodules -fuse-ld=lld ";
+            
+            if(this.CompilationTarget.includeEngine) {
+                Cmd += `-fprebuilt-module-path=${resolve(this.CompilationTarget.enginePath, "./Intermediate/Modules/")} `;
+            }
+            Cmd += `-fprebuilt-module-path=${resolve(this.CompilationTarget.projectPath, "./Intermediate/Modules/")} `;
 
+            for(let finalIdx = 0; finalIdx < this.Timeline.Final.length; finalIdx++) {
+                let final: StagedModuleInfo = this.Timeline.Final[finalIdx];
+
+                Cmd += `${Utils.GetModuleIntermediateBase(final, this.CompilationTarget)}.lib `;
+            }
+
+            Cmd += ` -o Builded.exe`;
+            
+            try {
+                execSync(Cmd, {"encoding": "utf8", stdio: 'pipe'});
+            } catch( stderr ) {
+                rej(stderr.stderr);
+            }
+
+            console.log(chalk.greenBright.bold('[OK] ') + chalk.greenBright(`Compilation complete!`));
+            res();
         });
     }
 }
