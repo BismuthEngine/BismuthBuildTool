@@ -40,7 +40,7 @@ var engineProject: Project;
 // ensure correct arguments
 if((!args.compile.isUsed && !args.project.isUsed)) {
     console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("Invalid arguments! \n") + 
-                chalk.redBright.bold("[ERROR] ") +  chalk.redBright("See https://github.com/ for usage"));
+                chalk.redBright.bold("[ERROR] ") +  chalk.redBright("See https://github.com/BismuthEngine/BismuthBuildTool for usage"));
     exit(-1);
 }
 
@@ -52,7 +52,7 @@ if(!args.NoBMT) {
     } catch(error) {
             console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No --no-bmt detected, "+
             "so Bismuth Module Tool should be used, however it's not installed!") +
-            chalk.redBright("\n\tIt's usually installed by installation script, but you may download it from https://github.com/"));
+            chalk.redBright("\n\tIt's usually installed by installation script, but you may download it from https://github.com/BismuthEngine/BismuthModuleTool"));
             exit(-1);
      };
 } else {
@@ -72,7 +72,7 @@ try {
                 /*if(engineProject.Entry) {
                     target.entry = engineProject.Entry;
                 } else {
-                    console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No Entry specified in Bismuth.project.json! That must be our bad, see https://github.com/"));
+                    console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No Entry specified in Bismuth.project.json! That must be our bad, see https://github.com/BismuthEngine/BismuthBuildTool"));
                     exit(-1);
                 }*/
             } catch (err) {
