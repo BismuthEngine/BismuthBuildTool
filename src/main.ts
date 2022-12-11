@@ -29,7 +29,8 @@ const target: Target = {
     projectPath: (args.project.isUsed ? resolve(__dirname, args.project.arg) : (args.compile.isUsed ? resolve(__dirname, args.compile.arg) : "")),
     EnvArgs: process.env,
     editorMode: args.EditorCompilation,
-    debug: args.Debug
+    debug: args.Debug,
+    outputhPath: (args.Output.isUsed ? args.Output.arg : "./Build")
 }
 
 var project: Project;

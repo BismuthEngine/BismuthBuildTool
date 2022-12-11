@@ -98,4 +98,8 @@ export default class Utils {
                 return resolve(target.projectPath, "./Intermediate/Modules/", module.Name)
         }
     }
+
+    static GetOutputBase(target: Target): string {
+        return resolve(target.projectPath, target.outputhPath);
+    }
 }

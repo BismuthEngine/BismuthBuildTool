@@ -24,6 +24,10 @@ interface Arguments {
         isUsed: boolean,
         arg: string
     },
+    Output: {
+        isUsed: boolean,
+        arg: string
+    },
     UpdateEngine: boolean,
     EditorCompilation: boolean,
     NoBMT: boolean,

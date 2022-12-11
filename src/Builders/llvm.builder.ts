@@ -244,6 +244,7 @@ export default class LLVMBuilder extends Builder {
     async Finalize(): Promise<void> {
         return new Promise<void>((res, rej) => {
             let Cmd = "clang++ -std=c++20 -fmodules -fuse-ld=lld ";
+            let OutputFolder = resolve('./Build/');
             
             if(this.CompilationTarget.includeEngine) {
                 Cmd += `-fprebuilt-module-path=${resolve(this.CompilationTarget.enginePath, "./Intermediate/Modules/")} `;
@@ -256,7 +257,7 @@ export default class LLVMBuilder extends Builder {
                 Cmd += `${Utils.GetModuleIntermediateBase(final, this.CompilationTarget)}.lib `;
             }
 
-            Cmd += ` -o Builded.exe`;
+            Cmd += ` -o ${resolve(Utils.GetOutputBase(this.CompilationTarget), './App.exe')}`;
             
             try {
                 execSync(Cmd, {"encoding": "utf8", stdio: 'pipe'});
@@ -264,7 +265,7 @@ export default class LLVMBuilder extends Builder {
                 rej(stderr.stderr);
             }
 
-            console.log(chalk.greenBright.bold('[OK] ') + chalk.greenBright(`Compilation complete!`));
+            console.log(chalk.greenBright.bold('\n[OK] ') + chalk.greenBright(`Compilation complete!`));
             res();
         });
     }

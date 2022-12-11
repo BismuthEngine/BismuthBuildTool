@@ -29,7 +29,11 @@ export default function (args: string[]): Arguments {
             isUsed: false,
             arg: ""
         },
-        Debug: false
+        Debug: false,
+        Output: {
+            isUsed: false,
+            arg: ""
+        }
     };
 
     for(let i = 0; i < args.length; i++)
@@ -84,6 +88,12 @@ export default function (args: string[]): Arguments {
                 break;
             case "--debug":
                 result.Debug = true;
+                break;
+            case "--output":
+                result.Output.isUsed = true;
+                i++;
+                argument = args[i];
+                result.Output.arg = argument;
                 break;
         }
     }
