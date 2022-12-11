@@ -93,30 +93,40 @@ export default class Builder {
     }
 
     async Compile(): Promise<void> {
-        this.Timeline.Stages.forEach((stage) => {
-            stage.Modules.forEach(module => {
-                let worker = this.CreateCompileWorker();
-                worker.SetRoot(module);
-                this.ResolveAllDependencies(module, worker)
-                .then(()=>{
-                    // compile module (would compile it & link with previous modules)
-                    worker.Compile()
-                    .then(()=>{
-                      this.Frame.PreviousModules.push(module);
-                      // TODO beautify
-                      console.log("Compile");
-                    })
+        this.Timeline.Stages[0].Modules.forEach(module => {
+            if(module.Type == "Deploy")
+                this.Frame.PreviousModules.push(module);
+        });
+
+        for(let stageIdx = 0; stageIdx < this.Timeline.Stages.length; stageIdx++) {
+            let stage = this.Timeline.Stages[stageIdx];
+            
+            for(let moduleIdx = 0; moduleIdx < stage.Modules.length; moduleIdx++) {
+                let module = stage.Modules[moduleIdx];
+
+                if(module.Type != "Deploy") {
+                    let worker = this.CreateCompileWorker();
+                    worker.SetRoot(module);
+                    await this.ResolveAllDependencies(module, worker)
                     .catch((reason)=>{
-                        console.log(reason);
+                        console.log(chalk.redBright.bold('[ERROR] ') + chalk.redBright(`Was not able to resolve dependency for module "${module.Name}": ${reason}`));
                         exit(-1);
                     });
-                })
-                .catch((reason)=>{
-                    console.log(reason);
-                    exit(-1);
-                });
-            });
-        });
+
+                    // compile module (would compile it & link with previous modules)
+                    await worker.Compile()
+                    .catch((reason)=>{
+                        console.log(chalk.redBright.bold('[ERROR] ') + reason);
+                        exit(-1);
+                    });
+
+                    // Save processed module into Build Frame
+                    this.Frame.PreviousModules.push(module);
+
+                    console.log(chalk.bold.greenBright.bgWhite("[OK] ") + chalk.greenBright.bgWhite(`Compiled: ${module.Name}`));
+                }
+            };
+        };
     }
 
     // All modules in Timeline are compiled. Now build executable.

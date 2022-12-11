@@ -98,7 +98,7 @@ export class LLVMCompileWorker extends CompileWorker {
                     } 
                 }
             })
-            if(this.root) {
+            if(this.root && this.root.Module.LinkerOptions) {
                 this.root.Module.LinkerOptions.forEach((opt) => {
                     Cmd += `-l${opt} `;
                 });
