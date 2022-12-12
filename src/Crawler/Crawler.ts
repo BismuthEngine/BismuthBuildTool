@@ -9,9 +9,11 @@ import { ModuleList, MultiModuleList } from "../Types/ModuleList";
 
 import { join } from "path";
 import { readFile, readdir, lstat, access,  } from "fs/promises";
-import { constants, exists } from "fs";
+import { constants, exists, readFileSync } from "fs";
 import Deploy from "../Classes/Deploy.js";
 import { pathToFileURL } from "url";
+import Utils from "../utils.js";
+import { createHash } from "crypto";
 
 // Returns Module Tree
 export default class Crawler {
@@ -25,9 +27,14 @@ export default class Crawler {
     Rules: Rules[] = [];
 
     private async CollectHash(path: string): Promise<string> {
+        let CommonBuffer: string = "";
         
+        const Files = Utils.GetFilesFiltered(path, /./, true);
+        Files.forEach(file => {
+            CommonBuffer += readFileSync(file, {encoding: "utf8"});
+        });
 
-        return "123123123123";
+        return createHash('sha256').update(CommonBuffer).digest('hex');;
     }
 
     private async CollectFolder(path: string, modlist: ModuleList): Promise<any> {

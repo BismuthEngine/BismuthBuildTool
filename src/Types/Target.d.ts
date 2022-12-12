@@ -13,5 +13,6 @@ interface Target {
     EnvArgs: NodeJS.ProcessEnv,
     entry: string,
     editorMode: boolean,
-    debug: boolean
+    debug: boolean,
+    verbose: boolean
 }

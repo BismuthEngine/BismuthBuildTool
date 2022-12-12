@@ -30,7 +30,8 @@ const target: Target = {
     EnvArgs: process.env,
     editorMode: args.EditorCompilation,
     debug: args.Debug,
-    outputhPath: (args.Output.isUsed ? args.Output.arg : "./Build")
+    outputhPath: (args.Output.isUsed ? args.Output.arg : "./Build"),
+    verbose: args.Verbose
 }
 
 var project: Project;

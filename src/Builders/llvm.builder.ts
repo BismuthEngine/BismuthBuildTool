@@ -127,32 +127,34 @@ export class LLVMCompileWorker extends CompileWorker {
         return (<Module>(this.root.Module)).Module == true || (<Module>(this.root.Module)).Module == undefined;
     }
 
-    GetRootCompilationFiles() {
-        let CppmFile: string;
+    GetRootCompilationFiles(): string[] {
+        let CppmFiles: string[] = [];
 
         // if module should be treated as C++20 module, we find .cppm file
         if(this.IsModule()) {
+            CppmFiles.push(resolve(dirname(this.root.Path), `./${this.GetModuleFile()} `));
+        } 
+
+        // Collect .cpp files
+        Utils.GetFilesFiltered(dirname(this.root.Path), /.cpp/, true).forEach(file => {
+            CppmFiles.push(file);
+        });
+
+        return CppmFiles;
+    }
+
+    GetModuleFile(): string {
+        if(this.IsModule()) {
 
             if((<Module>(this.root.Module)).ModuleEntry) {
-                CppmFile = (<Module>(this.root.Module)).ModuleEntry;
+                return ((<Module>(this.root.Module)).ModuleEntry);
             } else {
-                CppmFile = this.root.Name + ".cppm";
+                return (this.root.Name + ".cppm");
             }
 
-        } 
-        // If it's pre-processor's code, we should search for all .cpp files
-        else {
-            CppmFile = "";
-
-            Utils.GetFilesFiltered(dirname(this.root.Path), /.cpp/, true).forEach(file => {
-                CppmFile += ` ${file} `
-            });
-
-            return CppmFile;
-            //throw "LLVM.Builder.ts: GetRootCompilationFiles()";
+        } else {
+            return " ";
         }
-
-        return CppmFile
     }
 
     async Compile(): Promise<void> {
@@ -162,7 +164,7 @@ export class LLVMCompileWorker extends CompileWorker {
             });
         else
             return new Promise<void>(async (res, rej) => {
-                mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), "./Intermediate/Modules/"), {recursive: true});
+                mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), `./Intermediate/Modules/${this.root.Name}_temp`), {recursive: true});
 
                 let Cmd = `${this.CompBase} ${this.Target.debug ? "-g -O0 " : "-O3 "} `;
 
@@ -174,8 +176,6 @@ export class LLVMCompileWorker extends CompileWorker {
                 Cmd += `-fprebuilt-module-path=${resolve(this.Target.projectPath, "./Intermediate/Modules/")} `;
 
                 Cmd += this.CmdModifyDependencies();
-
-                Cmd += resolve(dirname(this.root.Path), `./${this.GetRootCompilationFiles()} `) + " ";
 
                 // Resolves dependencies for [.LIB] files
                 for(let modlIdx = 0; modlIdx < this.Modules.length; modlIdx++) {
@@ -190,8 +190,12 @@ export class LLVMCompileWorker extends CompileWorker {
                 // Precompile module (if should)
                 if(this.IsModule()) {
                     let pcmCmd = Cmd + `--precompile -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.pcm `;
+
+                    pcmCmd += resolve(dirname(this.root.Path), `./${this.GetModuleFile()} `) + " ";
                     
-                    //console.log(pcmCmd);
+                    if(this.Target.verbose){
+                        console.log(chalk.bold('[PCM] ') + pcmCmd);
+                    }
                     
                     try {
                         execSync(pcmCmd, {"encoding": "utf8", stdio: 'pipe'});
@@ -200,25 +204,41 @@ export class LLVMCompileWorker extends CompileWorker {
                     }
                 }
 
-                // Compile object file
+                // Compile object files into temp directory
 
-                let libCmd = Cmd + `-c -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.lib`;
+                let libCmd = Cmd + `-c `;
 
-                //console.log(libCmd);
+                let Files = this.GetRootCompilationFiles();
+                console.log(chalk.magenta(Files));
+                let ObjFiles: string = "";
 
-                try {
-                    execSync(libCmd, {"encoding": "utf8", stdio: 'pipe'});
-                } catch( stderr ) {
-                    rej(stderr.stderr);
-                }
+                Files.forEach(file => {
+                    let objPath = `${resolve(Utils.GetModuleTempBase(this.root, this.Target), Utils.GetPathFilename(file))}.obj`;
+                    ObjFiles += ` ${objPath} `;
+                    let curLibCmd = libCmd + ` ${file} -o ${objPath}`
+
+                    if(this.Target.verbose){
+                        console.log(chalk.bold('[LIB] ') + curLibCmd);
+                    }
+    
+                    try {
+                        execSync(curLibCmd, {"encoding": "utf8", stdio: 'pipe'});
+                    } catch( stderr ) {
+                        rej(stderr.stderr);
+                    }
+                })
 
                 // Link against dependencies 
-                if(this.Modules.length > 0) {
+                if(1) {
                     const libName = `${Utils.GetModuleIntermediateBase(this.root, this.Target)}`;
 
-                    lldCmd += ` ${libName}.lib` +
+                    lldCmd += ` ` +
+                              ` ${ObjFiles}` +
                               ` ${LLVMLinker.Output(this.Target)}${libName}.lib`;
-                    //console.log(lldCmd);
+                    
+                    if(this.Target.verbose){
+                        console.log(chalk.bold('[LINKER] ') + lldCmd);
+                    }
 
                     try {
                         execSync(lldCmd, {"encoding": "utf8", stdio: 'pipe'});
@@ -244,7 +264,9 @@ export default class LLVMBuilder extends Builder {
 
     async Finalize(): Promise<void> {
         return new Promise<void>((res, rej) => {
-            let Cmd = "clang++ -std=c++20 -fmodules -fuse-ld=lld ";
+            mkdirSync(Utils.GetOutputBase(this.CompilationTarget), {recursive: true});
+
+            let Cmd = `clang++ -std=c++20 -fmodules -fuse-ld=lld ${this.CompilationTarget.debug ? "-g -O0" : "-O3"} `;
             let OutputFolder = resolve('./Build/');
             
             if(this.CompilationTarget.includeEngine) {
@@ -259,6 +281,10 @@ export default class LLVMBuilder extends Builder {
             }
 
             Cmd += ` -o ${resolve(Utils.GetOutputBase(this.CompilationTarget), './App.exe')}`;
+
+            if(this.CompilationTarget.verbose){
+                console.log(chalk.bold('[FINAL] ') + Cmd);
+            }
             
             try {
                 execSync(Cmd, {"encoding": "utf8", stdio: 'pipe'});
@@ -266,7 +292,7 @@ export default class LLVMBuilder extends Builder {
                 rej(stderr.stderr);
             }
 
-            console.log(chalk.greenBright.bold('\n[OK] ') + chalk.greenBright(`Compilation complete!`));
+            console.log(chalk.greenBright.bold('\n[OK] ') + chalk.greenBright(`Compilation complete to "${Utils.GetOutputBase(this.CompilationTarget)}"!`));
             res();
         });
     }

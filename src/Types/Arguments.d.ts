@@ -31,5 +31,6 @@ interface Arguments {
     UpdateEngine: boolean,
     EditorCompilation: boolean,
     NoBMT: boolean,
-    Debug: boolean
+    Debug: boolean,
+    Verbose: boolean
 }

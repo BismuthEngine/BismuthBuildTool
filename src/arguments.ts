@@ -30,6 +30,7 @@ export default function (args: string[]): Arguments {
             arg: ""
         },
         Debug: false,
+        Verbose: false,
         Output: {
             isUsed: false,
             arg: ""
@@ -94,6 +95,9 @@ export default function (args: string[]): Arguments {
                 i++;
                 argument = args[i];
                 result.Output.arg = argument;
+                break;
+            case "-v":
+                result.Verbose = true;
                 break;
         }
     }

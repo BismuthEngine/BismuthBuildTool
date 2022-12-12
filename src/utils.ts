@@ -1,7 +1,7 @@
 import chalk from "chalk";
-import { existsSync, lstatSync, readdirSync, readFileSync } from "fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, rmdirSync, statSync, unlinkSync } from "fs";
 import Module from "./Classes/Module";
-import { resolve } from "path";
+import { join, resolve } from "path";
 import { pathToFileURL } from "url";
 import { StagedModuleInfo } from "./Types/Timeline";
 
@@ -99,7 +99,33 @@ export default class Utils {
         }
     }
 
+    static GetModuleTempBase(module: StagedModuleInfo, target: Target): string {
+        return this.GetModuleIntermediateBase(module, target) + "_temp";
+    }
+
+    static GetPathFilename(path: string) {
+        let s = path.split(/[\/\\]/);
+        return s[s.length-1].split(/\./)[0];
+    }
+
     static GetOutputBase(target: Target): string {
         return resolve(target.projectPath, target.outputhPath);
     }
+
+    static EmptyDir(path: string) {
+        const dirContents = readdirSync(path);
+      
+        for (const fileOrDirPath of dirContents) {
+          try {
+            const fullPath = join(path, fileOrDirPath);
+            const stat = statSync(fullPath);
+            if (stat.isDirectory()) {
+              if (readdirSync(fullPath).length) this.EmptyDir(fullPath);
+              rmdirSync(fullPath);
+            } else unlinkSync(fullPath);
+          } catch (ex) {
+            console.error(ex.message);
+          }
+        }
+      }
 }
