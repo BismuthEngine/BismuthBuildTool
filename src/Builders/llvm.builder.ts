@@ -209,7 +209,7 @@ export class LLVMCompileWorker extends CompileWorker {
                 let libCmd = Cmd + `-c `;
 
                 let Files = this.GetRootCompilationFiles();
-                console.log(chalk.magenta(Files));
+                // console.log(chalk.magenta(Files));
                 let ObjFiles: string = "";
 
                 Files.forEach(file => {
@@ -250,6 +250,9 @@ export class LLVMCompileWorker extends CompileWorker {
                 // Save hash
                 writeFileSync(`${Utils.GetModuleIntermediateBase(this.root, this.Target)}.hash`, this.root.ActualHash, {"encoding": "utf8"});
                 
+                // Clear temp directory
+                Utils.EmptyDir(Utils.GetModuleTempBase(this.root, this.Target));
+
                 // Return
                 res();
             })

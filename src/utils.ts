@@ -127,5 +127,7 @@ export default class Utils {
             console.error(ex.message);
           }
         }
-      }
+
+        rmdirSync(path);
+    }
 }
