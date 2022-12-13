@@ -81,15 +81,15 @@ export class LLVMCompileWorker extends CompileWorker {
                 // Deploy modifications
                 let deploy: Deploy = <Deploy>(mod.Module);
 
-                deploy.LinkerOptions.forEach((opt) => {
+                if (deploy.LinkerOptions) deploy.LinkerOptions.forEach((opt) => {
                     Cmd += `-l${opt} `;
                 });
 
-                deploy.Includes.forEach((inc) => {
+                if (deploy.Includes) deploy.Includes.forEach((inc) => {
                     Cmd += `-I${resolve(mod.Path, inc)} `;
                 });
 
-                deploy.StaticLibs.forEach((so) => {
+                if (deploy.StaticLibs) deploy.StaticLibs.forEach((so) => {
                     Cmd += `${resolve(mod.Path, so)} `;
                 });
             } else {
@@ -157,6 +157,20 @@ export class LLVMCompileWorker extends CompileWorker {
         }
     }
 
+    DefinePlatforms(): string {
+        switch(this.Target.platform) {
+            case "Mach":
+                return " -DPLATFORM_MAC "
+                break;
+            case "Unix":
+                return " -DPLATFORM_LINUX "
+                break;
+            case "Win32":
+                return " -DPLATFORM_WINDOWS "
+                break;
+        }
+    }
+
     async Compile(): Promise<void> {
         if(this.root == undefined)
             return new Promise<void>(async (res, rej) => {
@@ -167,6 +181,8 @@ export class LLVMCompileWorker extends CompileWorker {
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), `./Intermediate/Modules/${this.root.Name}_temp`), {recursive: true});
 
                 let Cmd = `${this.CompBase} ${this.Target.debug ? "-g -O0 " : "-O3 "} `;
+
+                Cmd += this.DefinePlatforms();
 
                 let lldCmd = this.LDBase + LLVMLinker.Relocatable(this.Target);
 
@@ -179,12 +195,22 @@ export class LLVMCompileWorker extends CompileWorker {
 
                 // Resolves dependencies for [.LIB] files
                 for(let modlIdx = 0; modlIdx < this.Modules.length; modlIdx++) {
-                    Cmd += resolve(Utils.GetRootFolderForModule(this.Modules[modlIdx], this.Target), 
-                                        "./Intermediate/Modules/", 
-                                        `./${this.Modules[modlIdx].Name}.lib`) + " ";
-                    lldCmd += resolve(Utils.GetRootFolderForModule(this.Modules[modlIdx], this.Target), 
-                                        "./Intermediate/Modules/", 
-                                        `./${this.Modules[modlIdx].Name}.lib`) + " ";
+                    if(this.Modules[modlIdx].Type == "Module") { 
+                        Cmd += resolve(Utils.GetRootFolderForModule(this.Modules[modlIdx], this.Target), 
+                                            "./Intermediate/Modules/", 
+                                            `./${this.Modules[modlIdx].Name}.lib`) + " ";
+                        lldCmd += resolve(Utils.GetRootFolderForModule(this.Modules[modlIdx], this.Target), 
+                                            "./Intermediate/Modules/", 
+                                            `./${this.Modules[modlIdx].Name}.lib`) + " ";
+                    } else {
+                        let deploy: Deploy = <Deploy>(this.Modules[modlIdx].Module);
+                        
+                        if(deploy.StaticLibs) {
+                            deploy.StaticLibs.forEach(lib => {
+                                lldCmd += ` ${lib} `;
+                            })
+                        }
+                    }
                 }
 
                 // Precompile module (if should)

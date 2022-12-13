@@ -1,6 +1,8 @@
+import chalk from "chalk";
+import { exit } from "process";
 
 // Guarantees synchronous calls for deploy modules
-export default class FetchAPI {
+export default class DeployAPI {
 
     GitClone() {
         
@@ -28,5 +30,13 @@ export default class FetchAPI {
 
     Manifest() {
         
+    }
+
+    Halt() {
+        exit(-1);
+    }
+
+    Color() {
+        return chalk;
     }
 }

@@ -1,4 +1,4 @@
-import FetchAPI from "./FetchAPI"
+import DeployAPI from "./DeployAPI"
 
 export default class Deploy {
     constructor(target: Target) {
@@ -17,14 +17,14 @@ export default class Deploy {
     PCM: string[] = []
     // Options that would be passed to compiler as -l{option}
     LinkerOptions: string[] = []
-    // License
+    // License 
     License: string = ""
 
     // If true, passed to Builder as compilation target
     Compiled: boolean = false
 
     // Seeks, downloads, installs module and returns deployment information
-    async Deploy(fetch: FetchAPI): Promise<any> {
+    async Deploy(fetch: DeployAPI): Promise<any> {
         return new Promise<any>((resolve, reject) => {
                 resolve(this);
         });

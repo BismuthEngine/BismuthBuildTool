@@ -2,6 +2,8 @@ import chalk from "chalk";
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { exit } from "process";
+import Deploy from "../Classes/Deploy";
+import DeployAPI from "../Classes/DeployAPI.js";
 import Module from "../Classes/Module";
 import Rules from "../Classes/Rules";
 import { ModuleList, MultiModuleList, RawModule } from "../Types/ModuleList";
@@ -20,10 +22,12 @@ export default class Solver {
     Objects: MultiModuleList;
     CompilationTarget: Target;
     FinalsRequired: string[];
+    DeployAPI: DeployAPI;
     
     constructor(target: Target, crawler: MultiModuleList) {
         this.Objects = crawler;
         this.CompilationTarget = target;
+        this.DeployAPI = new DeployAPI();
     }
 
     PushInteropFrame() {
@@ -99,6 +103,7 @@ export default class Solver {
 
             if(mod.Type == "Deploy") {
                 this.InteropFrame.Staged.push(mod);
+                (<Deploy>(mod.Module)).Deploy(this.DeployAPI);
                 console.log(chalk.bold.greenBright.bgWhite("[OK] ") + chalk.greenBright.bgWhite(`Deployed: ${mod.Name}`));
                 return;
             }
@@ -146,6 +151,11 @@ export default class Solver {
     }
 
     CalculateUTD(module: StagedModuleInfo): StagedModuleInfo {
+        if(module.Type == "Deploy") {
+            module.UpToDate = true;
+            return module;
+        }
+
         let IntermediatePath: string = "";
         switch(module.Domain) {
             case "Engine":
