@@ -27,7 +27,7 @@ const target: Target = {
     includeEngine: args.project.isUsed,
     enginePath: "",
     entry: "",
-    projectPath: (args.project.isUsed ? resolve(__dirname, args.project.arg) : (args.compile.isUsed ? resolve(__dirname, args.compile.arg) : "")),
+    projectPath: (args.project.isUsed ? resolve(__dirname, dirname(args.project.arg)) : (args.compile.isUsed ? resolve(__dirname, dirname(args.compile.arg)) : "")),
     EnvArgs: process.env,
     editorMode: args.EditorCompilation,
     debug: args.Debug,
@@ -65,13 +65,13 @@ if(!args.NoBMT) {
 
 // Retrieve project file
 try {
-    project = Utils.ReadJSON(Utils.GetFilesFiltered(target.projectPath, /.project.json/)[0]);
+    project = Utils.ReadJSON(Utils.GetFilesFiltered(target.projectPath, /\.bismuth/)[0]);
     if(args.project.isUsed) {
         if(project.EnginePath) {
             target.enginePath = project.EnginePath;
             // Fetch engine's project file
             try {
-                engineProject = Utils.ReadJSON(Utils.GetFilesFiltered(target.enginePath, /.project.json/)[0]);
+                engineProject = Utils.ReadJSON(Utils.GetFilesFiltered(target.enginePath, /\.bismuth/)[0]);
                 /*if(engineProject.Entry) {
                     target.entry = engineProject.Entry;
                 } else {
@@ -79,11 +79,11 @@ try {
                     exit(-1);
                 }*/
             } catch (err) {
-                console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No engine's .project.json file found! Check that engine is installed and reference is updated."));
+                console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No engine's .bismuth file found! Check that engine is installed and reference is updated."));
                 exit(-1);
             }
         } else {
-            console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No EnginePath specified in .project.json!"));
+            console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No EnginePath specified in .bismuth!"));
             exit(-1);
         }
     } else if(args.compile.isUsed) {
@@ -95,7 +95,7 @@ try {
         }*/
     }
 } catch (err) {
-    console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No correct .project.json file provided!"));
+    console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No correct .bismuth file provided!"));
     exit(-1);
 }
 
