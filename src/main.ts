@@ -15,6 +15,7 @@ import { Stage, Timeline } from "./Types/Timeline.js";
 import { fileURLToPath } from 'url';
 import { dirname, resolve, join } from 'path';
 import { existsSync, readdirSync, lstatSync } from "fs";
+import { CheckClangInstallation, CheckGitInstallation, CheckMSVCInstallation } from "./installs.js";
 
 const __dirname = resolve();
 
@@ -98,27 +99,6 @@ try {
     exit(-1);
 }
 
-function CheckClangInstallation() {
-    try {
-        execSync("clang++ --version", {stdio: 'ignore'})
-        console.log(chalk.greenBright.bold("[OK] ") + chalk.greenBright("Found Clang compiler"));
-    } catch(error) {
-            console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("Tried compiling with LLVM Clang, but it "+
-            "is not installed or configured properly!"));
-            exit(-1);
-     };
-}
-
-function CheckMSVCInstallation() {
-    try {
-        execSync("cl", {stdio: 'ignore'})
-        console.log(chalk.greenBright.bold("[OK] ") + chalk.greenBright("Found MSVC compiler"));
-    } catch(error) {
-            console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("Tried compiling with MSVC Compiler, but it "+
-            "is not installed or configured properly!"));
-            exit(-1);
-     };
-}
 
 const CompilationToolkit: Toolkit = Utils.GetToolkit(target);
 
@@ -127,6 +107,8 @@ if(CompilationToolkit == "Clang") {
 } else if(CompilationToolkit == "MSVC"){
     CheckMSVCInstallation();
 }
+
+CheckGitInstallation();
 
 console.log(chalk.bold("[LOG] ") + `Compiling ${project.Name}`);
 

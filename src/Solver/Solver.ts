@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
-import { join } from "path";
+import { dirname, join } from "path";
 import { exit } from "process";
 import Deploy from "../Classes/Deploy";
 import DeployAPI from "../Classes/DeployAPI.js";
@@ -92,7 +92,7 @@ export default class Solver {
     }
 
     SolveInteropFrame() {
-        this.InteropFrame.Branches.Modules.forEach((mod: StagedModuleInfo) => {
+        this.InteropFrame.Branches.Modules.forEach(async (mod: StagedModuleInfo) => {
             //console.log(chalk.bold("[LOG] ") + `Solving: ${mod.Name}`);
             //console.log(mod);
             
@@ -103,7 +103,8 @@ export default class Solver {
 
             if(mod.Type == "Deploy") {
                 this.InteropFrame.Staged.push(mod);
-                (<Deploy>(mod.Module)).Deploy(this.DeployAPI);
+                this.DeployAPI.path = dirname(mod.Path);
+                await (<Deploy>(mod.Module)).Deploy(this.DeployAPI);
                 console.log(chalk.bold.greenBright.bgWhite("[OK] ") + chalk.greenBright.bgWhite(`Deployed: ${mod.Name}`));
                 return;
             }
