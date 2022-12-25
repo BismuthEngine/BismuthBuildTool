@@ -8,6 +8,7 @@ import Module from "../Classes/Module";
 import Rules from "../Classes/Rules";
 import { ModuleList, MultiModuleList, RawModule } from "../Types/ModuleList";
 import { Stage, StagedModuleInfo, Timeline } from "../Types/Timeline";
+import SubModuleSolver from "./SubModuleSolver.js";
 
 // Solving divides modules into stages, each of which represents Root, Branches or Leaves
 // Leaves are always non-dependant, which means that they don't rely on any other bismuth-module
@@ -57,6 +58,8 @@ export default class Solver {
     }
 
     StageModule(module: RawModule, Domain: "Engine" | "Project"): StagedModuleInfo {
+        let subSolver: SubModuleSolver = new SubModuleSolver(module.parts);
+
         let StagedModule: StagedModuleInfo = {
             Type: module.type,
             Name: module.object.Name,
@@ -65,7 +68,8 @@ export default class Solver {
             Module: module.object,
             DependsOn: [],
             ActualHash: module.hash,
-            Domain: Domain
+            Domain: Domain,
+            Parts: subSolver.Solve()
         }
 
         // Get dependencies

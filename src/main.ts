@@ -21,13 +21,17 @@ const __dirname = resolve();
 
 const args: Arguments = ParseArguments(process.argv);
 
+const extractProjDir = (path: string) => {
+    return (/\.bismuth/.test(path) ? dirname(path) : path)
+}
+
 const target: Target = {
     platform: args.platform.isUsed ? args.platform.arg : Utils.GetPlatform(process.platform),
     arch: args.arch.isUsed ? args.arch.arg : Utils.GetArch(process.arch),
     includeEngine: args.project.isUsed,
     enginePath: "",
     entry: "",
-    projectPath: (args.project.isUsed ? resolve(__dirname, dirname(args.project.arg)) : (args.compile.isUsed ? resolve(__dirname, dirname(args.compile.arg)) : "")),
+    projectPath: (args.project.isUsed ? resolve(__dirname, extractProjDir(args.project.arg)) : (args.compile.isUsed ? resolve(__dirname, extractProjDir(args.compile.arg)) : "")),
     EnvArgs: process.env,
     editorMode: args.EditorCompilation,
     debug: args.Debug,

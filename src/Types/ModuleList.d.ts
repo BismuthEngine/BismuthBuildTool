@@ -5,11 +5,19 @@ import { ModuleType } from "./Timeline";
 
 type RootModule = "Engine" | "Project";
 
+interface RawSubModule {
+    name: string,
+    interface: string,
+    implementation: string,
+    imports: string[]
+}
+
 interface RawModule {
     path: string,
     object: Module | Deploy,
     type: ModuleType,
-    hash: string
+    hash: string,
+    parts: RawSubModule[]
 }
 
 interface ModuleList {

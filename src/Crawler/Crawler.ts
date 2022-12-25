@@ -5,7 +5,7 @@
 
 import Module from "../Classes/Module.js";
 import Rules from "../Classes/Rules.js";
-import { ModuleList, MultiModuleList } from "../Types/ModuleList";
+import { ModuleList, MultiModuleList, RawModule, RawSubModule } from "../Types/ModuleList";
 
 import { join } from "path";
 import { readFile, readdir, lstat, access,  } from "fs/promises";
@@ -37,6 +37,62 @@ export default class Crawler {
         return createHash('sha256').update(CommonBuffer).digest('hex');;
     }
 
+    private async ParseSubmodule(path: string): Promise<RawSubModule> {
+        return new Promise<RawSubModule>((res, rej)=>{
+            let module: RawSubModule = {
+                name: "",
+                interface: "",
+                implementation: "",
+                imports: []
+            };
+
+            // Get module name
+
+            // Store path of this current unit
+            if(path.endsWith('.cppm')) {
+                module.interface = path;
+            } else {
+                module.implementation = path;
+            }
+
+            // Parse imports
+
+            res(module);
+        });
+    }
+
+    private async CollectSubmodules(path: string, module: Module): Promise<RawSubModule[]> {
+        return new Promise<RawSubModule[]>(async (res, rej)=>{
+            let SubModules: RawSubModule[] = [];
+            let moduleEntry = (module.ModuleEntry != undefined) ? module.ModuleEntry : (`${module.Name}.cppm`)
+
+            let Paths: string[] = Utils.GetFilesFiltered(path, /(.cppm$)|(.cpp$)/i, true);
+            Paths = Paths.filter((value)=>{
+                return `${Utils.GetPathFilename(value)}.cppm` != moduleEntry
+            });
+            console.log(Paths);
+
+            for(let unit of Paths) {
+                let subModule = await this.ParseSubmodule(unit);
+                console.log(subModule);
+
+                let registeredSubModule = SubModules.find(
+                    (element)=>{
+                        return (element.name == subModule.name);
+                    }
+                );
+
+                if(!registeredSubModule) {
+                    SubModules.push(subModule);
+                } else {
+                    SubModules[SubModules.indexOf(registeredSubModule)] = Utils.MergeObj<RawSubModule>(registeredSubModule, subModule);
+                }
+            }
+
+            res(SubModules);
+        });
+    }
+
     private async CollectFolder(path: string, modlist: ModuleList): Promise<any> {
         return new Promise<any>(async (resolve, reject) => {
             try {
@@ -54,19 +110,23 @@ export default class Crawler {
                     await this.CollectFolder(filepath, modlist);
                 } else if (/\.module\.js/.test(filepath))
                 {
-                    modlist.Modules.push({
+                    let expMod: RawModule = {
                         path: filepath,
                         object: (new (await this.ImportClass(filepath))(this.CompilationTarget)) as Module,
                         type: "Module",
-                        hash: await this.CollectHash(path)
-                    })
+                        hash: await this.CollectHash(path),
+                        parts: []
+                    };
+                    expMod.parts = await this.CollectSubmodules(path, <Module>(expMod.object));
+                    modlist.Modules.push(expMod);
                 } else if (/\.deploy\.js/.test(filepath))
                 {
                     modlist.Deploys.push({
                         path: filepath,
                         object: (new (await this.ImportClass(filepath))(this.CompilationTarget)) as Deploy,
                         type: "Deploy",
-                        hash: ""
+                        hash: "",
+                        parts: []
                     })
                 } else if (/\.rules\.js/.test(filepath) && !(/Editor\.rules\.js/.test(filepath)))
                 {

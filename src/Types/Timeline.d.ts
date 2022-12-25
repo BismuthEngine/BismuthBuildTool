@@ -5,6 +5,17 @@ import Module from "../Classes/Module";
 // They should be already solved before Builder pass
 type ModuleType = "Module" | "Deploy";
 
+interface StagedSubModuleInfo {
+    Name: string,
+    Interface: string,
+    Implementation: string,
+    Imports: string[]
+}
+
+interface SubModuleTimeline {
+    Stages: StagedSubModuleInfo[],
+}
+
 interface StagedModuleInfo {
     Type: ModuleType,
     Name: string,
@@ -13,7 +24,8 @@ interface StagedModuleInfo {
     Module: Module | Deploy,
     DependsOn: string[],
     ActualHash: string,
-    Domain: "Engine" | "Project"
+    Domain: "Engine" | "Project",
+    Parts: SubModuleTimeline[]
 }
 
 interface Stage {

@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { execSync } from "child_process";
-import { createWriteStream, mkdirSync } from "fs";
+import { accessSync, createWriteStream, mkdirSync } from "fs";
 import { get } from "http";
 import { resolve } from "path";
 import { exit } from "process";
@@ -11,7 +11,12 @@ export default class DeployAPI {
 
     GitClone(git: string) {
         try{
-            execSync(`git clone ${git} `, {cwd: this.path});
+            try{
+                accessSync(resolve(this.path, './Deploy'))
+            } catch(err){
+                mkdirSync(resolve(this.path, './Deploy'));
+            }
+            execSync(`git clone ${git} `, {cwd: resolve(this.path, './Deploy')});
         } catch(err) {
             console.log(chalk.bgRedBright.bold("[DEPLOY-API] ") + chalk.bgRedBright(`Failed Git Clone from ${git}`));
             exit(-1);

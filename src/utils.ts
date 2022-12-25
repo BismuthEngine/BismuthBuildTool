@@ -130,4 +130,23 @@ export default class Utils {
 
         rmdirSync(path);
     }
+
+    static MergeObj<Type>(...objs: Type[]): Type {
+        let Final: any = objs[0];
+        for(let obj of objs) {
+            let Properties = Object.getOwnPropertyNames(obj);
+            
+            // If string is empty, object is undefined or array is empty
+            for(let prop of Properties) {
+                if( (<any>obj)[prop] === "" || 
+                    (<any>obj)[prop] === undefined ||
+                    ((<any>obj)[prop].hasOwnProperty("length") ? ((<any>obj)[prop].length == 0) : (false)))
+                {} else {
+                    Final[prop] = (<any>obj)[prop];
+                }
+            }
+        }
+
+        return <Type>Final;
+    }
 }

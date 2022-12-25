@@ -2,11 +2,12 @@ import chalk from "chalk";
 import { exec, execSync } from "child_process";
 import { accessSync, constants, mkdirSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
-import Builder, { CompileWorker } from "../builder.js";
-import Deploy from "../Classes/Deploy.js";
-import Module from "../Classes/Module.js";
-import { StagedModuleInfo } from "../Types/Timeline.js";
-import Utils from "../utils.js";
+import Builder, { CompileWorker } from "../../builder.js";
+import Deploy from "../../Classes/Deploy.js";
+import Module from "../../Classes/Module.js";
+import { StagedModuleInfo } from "../../Types/Timeline.js";
+import Utils from "../../utils.js";
+import LLVMSubModuleBuilder from "./llvm.submoduleBuilder.js";
 
 class LLVMLinker {
     static Relocatable(target: Target) {
@@ -179,6 +180,8 @@ export class LLVMCompileWorker extends CompileWorker {
         else
             return new Promise<void>(async (res, rej) => {
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), `./Intermediate/Modules/${this.root.Name}_temp`), {recursive: true});
+
+                let submoduleBuilder: LLVMSubModuleBuilder = new LLVMSubModuleBuilder();
 
                 let Cmd = `${this.CompBase} ${this.Target.debug ? "-g -O0 " : "-O3 "} `;
 

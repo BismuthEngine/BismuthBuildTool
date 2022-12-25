@@ -1,5 +1,5 @@
 import Builder from "./builder.js"
-import LLVMBuilder from "./Builders/llvm.builder.js"
+import LLVMBuilder from "./Builders/llvm/llvm.builder.js"
 import MSVCBuilder from "./Builders/msvc.builder.js"
 import { Timeline } from "./Types/Timeline.js";
 
