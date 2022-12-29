@@ -1,12 +1,12 @@
-import Module from "./Classes/Module.js";
-import Deploy from "./Classes/Deploy.js";
-import { Stage, StagedModuleInfo, Timeline } from "./Types/Timeline";
-import { BuilderFrame } from "./Types/BuilderFrame";
+import Module from "../Classes/Module.js";
+import Deploy from "../Classes/Deploy.js";
+import { Stage, StagedModuleInfo, Timeline } from "../Types/Timeline";
+import { BuilderFrame } from "../Types/BuilderFrame";
 import chalk from "chalk";
 import { join } from "path";
 import { mkdirSync, writeFileSync } from "fs";
 import { exit } from "process";
-import {CompilationError, BuilderPipeline} from "./Types/Compilation";
+import {CompilationError, BuilderPipeline} from "../Types/Compilation";
 
 export class CompileWorker {
     Target: Target;

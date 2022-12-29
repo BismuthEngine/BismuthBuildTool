@@ -9,11 +9,16 @@ interface StagedSubModuleInfo {
     Name: string,
     Interface: string,
     Implementation: string,
+    Domain: "Engine" | "Project",
     Imports: string[]
 }
 
+interface SubStage {
+    Modules: StagedSubModuleInfo[]
+}
+
 interface SubModuleTimeline {
-    Stages: StagedSubModuleInfo[],
+    Stages: SubStage[],
 }
 
 interface StagedModuleInfo {
@@ -25,7 +30,7 @@ interface StagedModuleInfo {
     DependsOn: string[],
     ActualHash: string,
     Domain: "Engine" | "Project",
-    Parts: SubModuleTimeline[]
+    Parts: SubModuleTimeline
 }
 
 interface Stage {

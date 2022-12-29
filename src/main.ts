@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import Builder from "./builder.js";
-import CreateBuilderInstance from "./builder.factory.js";
+import Builder from "./Builder/builder.js";
+import CreateBuilderInstance from "./Builder/builder.factory.js";
 import ParseArguments from "./arguments.js"
 import Utils from "./utils.js";
 import { exec, execSync } from "child_process";

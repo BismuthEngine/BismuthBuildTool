@@ -3,7 +3,7 @@ import { existsSync, lstatSync, readdirSync, readFileSync, rmdirSync, statSync, 
 import Module from "./Classes/Module";
 import { join, resolve } from "path";
 import { pathToFileURL } from "url";
-import { StagedModuleInfo } from "./Types/Timeline";
+import { StagedModuleInfo, StagedSubModuleInfo } from "./Types/Timeline";
 
 export default class Utils {
     static GetPlatform(platform: string): Platform {
@@ -73,6 +73,7 @@ export default class Utils {
         return retfiles;
     }
 
+    // root: engine/project root folder
     static GetIntermediateFolder(root: string): string {
         return pathToFileURL(resolve(root, "./Intermediate/")).toString();
     }
@@ -96,6 +97,15 @@ export default class Utils {
                 return resolve(target.enginePath, "./Intermediate/Modules/", module.Name)
             case "Project":
                 return resolve(target.projectPath, "./Intermediate/Modules/", module.Name)
+        }
+    }
+
+    static GetModuleIntermediateFolder(module: StagedModuleInfo | StagedSubModuleInfo, target: Target): string {
+        switch(module.Domain) {
+            case "Engine":
+                return resolve(target.enginePath, "./Intermediate/Modules/")
+            case "Project":
+                return resolve(target.projectPath, "./Intermediate/Modules/")
         }
     }
 

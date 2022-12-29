@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { exec, execSync } from "child_process";
 import { accessSync, constants, mkdirSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
-import Builder, { CompileWorker } from "../../builder.js";
+import Builder, { CompileWorker } from "../builder.js";
 import Deploy from "../../Classes/Deploy.js";
 import Module from "../../Classes/Module.js";
 import { StagedModuleInfo } from "../../Types/Timeline.js";
@@ -181,8 +181,6 @@ export class LLVMCompileWorker extends CompileWorker {
             return new Promise<void>(async (res, rej) => {
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), `./Intermediate/Modules/${this.root.Name}_temp`), {recursive: true});
 
-                let submoduleBuilder: LLVMSubModuleBuilder = new LLVMSubModuleBuilder();
-
                 let Cmd = `${this.CompBase} ${this.Target.debug ? "-g -O0 " : "-O3 "} `;
 
                 Cmd += this.DefinePlatforms();
@@ -215,10 +213,19 @@ export class LLVMCompileWorker extends CompileWorker {
                         }
                     }
                 }
+                
+                // [0] is for PCM
+                // [1] is for OBJ
+                let PartitionsArtifacts: string[] = ["", ""];
+    
+                // Compile partitions, if bismuth module is c++20 module
+                if(this.IsModule()) {
+                    PartitionsArtifacts = await (new LLVMSubModuleBuilder(this.Target, this.root)).Build(Cmd);
+                }
 
                 // Precompile module (if should)
                 if(this.IsModule()) {
-                    let pcmCmd = Cmd + `--precompile -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.pcm `;
+                    let pcmCmd = Cmd + PartitionsArtifacts[0] + `--precompile -o ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.pcm `;
 
                     pcmCmd += resolve(dirname(this.root.Path), `./${this.GetModuleFile()} `) + " ";
                     
@@ -234,46 +241,44 @@ export class LLVMCompileWorker extends CompileWorker {
                 }
 
                 // Compile object files into temp directory
+                if(!this.IsModule()) {
+                    let libCmd = Cmd + `-c `;
+                    
+                    let Files = this.GetRootCompilationFiles();
+                    // console.log(chalk.magenta(Files));
 
-                let libCmd = Cmd + `-c `;
+                    Files.forEach(file => {
+                        let objPath = `${resolve(Utils.GetModuleTempBase(this.root, this.Target), Utils.GetPathFilename(file))}.obj`;
+                        PartitionsArtifacts[1] += ` ${objPath} `;
+                        let curLibCmd = libCmd + ` ${file} -o ${objPath}`
 
-                let Files = this.GetRootCompilationFiles();
-                // console.log(chalk.magenta(Files));
-                let ObjFiles: string = "";
-
-                Files.forEach(file => {
-                    let objPath = `${resolve(Utils.GetModuleTempBase(this.root, this.Target), Utils.GetPathFilename(file))}.obj`;
-                    ObjFiles += ` ${objPath} `;
-                    let curLibCmd = libCmd + ` ${file} -o ${objPath}`
-
-                    if(this.Target.verbose){
-                        console.log(chalk.bold('[LIB] ') + curLibCmd);
-                    }
-    
-                    try {
-                        execSync(curLibCmd, {"encoding": "utf8", stdio: 'pipe'});
-                    } catch( stderr ) {
-                        rej(stderr.stderr);
-                    }
-                })
+                        if(this.Target.verbose){
+                            console.log(chalk.bold('[LIB] ') + curLibCmd);
+                        }
+                    
+                        try {
+                            execSync(curLibCmd, {"encoding": "utf8", stdio: 'pipe'});
+                        } catch( stderr ) {
+                            rej(stderr.stderr);
+                        }
+                    })
+                }
 
                 // Link against dependencies 
-                if(1) {
-                    const libName = `${Utils.GetModuleIntermediateBase(this.root, this.Target)}`;
-
-                    lldCmd += ` ` +
-                              ` ${ObjFiles}` +
-                              ` ${LLVMLinker.Output(this.Target)}${libName}.lib`;
-                    
-                    if(this.Target.verbose){
-                        console.log(chalk.bold('[LINKER] ') + lldCmd);
-                    }
-
-                    try {
-                        execSync(lldCmd, {"encoding": "utf8", stdio: 'pipe'});
-                    } catch( stderr ) {
-                        rej(stderr.stderr);
-                    }
+                const libName = `${Utils.GetModuleIntermediateBase(this.root, this.Target)}`;
+                
+                lldCmd += ` ` +
+                          ` ${PartitionsArtifacts[1]}` +
+                          ` ${LLVMLinker.Output(this.Target)}${libName}.lib`;
+                
+                if(this.Target.verbose){
+                    console.log(chalk.bold('[LINKER] ') + lldCmd);
+                }
+                
+                try {
+                    execSync(lldCmd, {"encoding": "utf8", stdio: 'pipe'});
+                } catch( stderr ) {
+                    rej(stderr.stderr);
                 }
 
                 // Save hash
