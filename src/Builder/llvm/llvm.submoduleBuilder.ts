@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { execSync } from "child_process";
 import { resolve } from "path";
 import { exit } from "process";
@@ -94,6 +95,9 @@ export default class LLVMSubModuleBuilder {
                         let pcmCmd = modCmd + ` --precompile -o ${pcmFile}`;
                     
                         try {
+                            if(this.Target.verbose) {
+                                console.log(`[SUB-PCM: ${part.Name}] ${pcmCmd}`);
+                            }
                             execSync(pcmCmd, {"encoding": "utf8", stdio: 'pipe'});
                         } catch(err) {
                             rej(err);
@@ -107,6 +111,9 @@ export default class LLVMSubModuleBuilder {
                             let objCmd = symCmd + `-fmodule-file=${pcmFile} -c -o ${resolve(Utils.GetModuleTempBase(this.Root, this.Target), `./${partName}.obj`)}`;
                             
                             try {
+                                if(this.Target.verbose) {
+                                    console.log(`[SUB-OBJ: ${part.Name}] ${objCmd}`);
+                                }
                                 execSync(objCmd, {"encoding": "utf8", stdio: 'pipe'});
                             } catch(err) {
                                 rej(err);

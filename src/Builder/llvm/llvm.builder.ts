@@ -262,6 +262,10 @@ export class LLVMCompileWorker extends CompileWorker {
                             rej(stderr.stderr);
                         }
                     })
+                } else {
+                    // Module main entry consists of Interface Unit & Implementation Unit(optional)
+                    // We find those using .module.js's ModuleEntry files (module name if entry is null)
+                    // We assemble them into .obj & concat artifacts
                 }
 
                 // Link against dependencies 
