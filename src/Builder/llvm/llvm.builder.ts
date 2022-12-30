@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { exec, execSync } from "child_process";
-import { accessSync, constants, mkdirSync, writeFileSync } from "fs";
+import { accessSync, constants, existsSync, mkdirSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import Builder, { CompileWorker } from "../builder.js";
 import Deploy from "../../Classes/Deploy.js";
@@ -263,6 +263,34 @@ export class LLVMCompileWorker extends CompileWorker {
                         }
                     })
                 } else {
+                    let libCmd = Cmd + PartitionsArtifacts[1] + `-c `;
+
+                    let entryName = (<Module>(this.root.Module)).ModuleEntry ? (<Module>(this.root.Module)).ModuleEntry : './' + (<Module>(this.root.Module)).Name;
+
+                    let entryPath = resolve(dirname(this.root.Path), entryName);
+
+                    let implementationExists = existsSync(`${entryPath}.cpp`);
+                    let compileQueue: {path: string, unit: "implementation" | "interface"}[] = [{path: `${entryPath}.cppm`, unit: "interface"}];
+                    
+                    if(implementationExists) {
+                        compileQueue.push({path: `${entryPath}.cpp`, unit: "implementation"});
+                    }
+
+                    for(let file of compileQueue) {
+                        let objPath = `${resolve(Utils.GetModuleTempBase(this.root, this.Target), Utils.GetPathFilename(file.path))}_${file.unit}.obj`;
+                        let curLibCmd = libCmd + ` ${file.path} -o ${objPath}`;
+
+                        try {
+                            if(this.Target.verbose){
+                                console.log(chalk.bold('[LIB] ') + curLibCmd);
+                            }
+                            execSync(curLibCmd, {"encoding": "utf8", stdio: 'pipe'});
+
+                            PartitionsArtifacts[1] += ` ${objPath}`;
+                        } catch( stderr ) {
+                            rej(stderr.stderr);
+                        }
+                    }
                     // Module main entry consists of Interface Unit & Implementation Unit(optional)
                     // We find those using .module.js's ModuleEntry files (module name if entry is null)
                     // We assemble them into .obj & concat artifacts
@@ -289,7 +317,7 @@ export class LLVMCompileWorker extends CompileWorker {
                 writeFileSync(`${Utils.GetModuleIntermediateBase(this.root, this.Target)}.hash`, this.root.ActualHash, {"encoding": "utf8"});
                 
                 // Clear temp directory
-                Utils.EmptyDir(Utils.GetModuleTempBase(this.root, this.Target));
+                //Utils.EmptyDir(Utils.GetModuleTempBase(this.root, this.Target));
 
                 // Return
                 res();
