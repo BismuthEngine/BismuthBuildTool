@@ -58,7 +58,7 @@ export default class Solver {
     }
 
     StageModule(module: RawModule, Domain: "Engine" | "Project"): StagedModuleInfo {
-        let subSolver: SubModuleSolver = new SubModuleSolver(module.parts, Domain);
+        let subSolver: SubModuleSolver = new SubModuleSolver(module.parts, module, Domain);
 
         let StagedModule: StagedModuleInfo = {
             Type: module.type,

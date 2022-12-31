@@ -1,30 +1,40 @@
 import chalk from "chalk";
+import test from "node:test";
 import { exit } from "process";
+import Module from "../Classes/Module";
 import { RawModule, RawSubModule } from "../Types/ModuleList";
 import { StagedSubModuleInfo, SubModuleTimeline, SubStage } from "../Types/Timeline";
 
 export default class SubModuleSolver {
     Timeline: SubModuleTimeline;
     Modules: RawSubModule[];
+    Root: RawModule;
     Domain: "Engine" | "Project";
     InteropFrame: {Branches: SubStage | any, Leaves: SubStage[], Staged: StagedSubModuleInfo[]} = {Branches: null, Leaves: [], Staged: []}
 
-    constructor(modules: RawSubModule[], Root: "Engine" | "Project") {
-        this.Domain = Root;
+    constructor(modules: RawSubModule[], Root: RawModule, Domain: "Engine" | "Project") {
+        this.Root = Root;
+        this.Domain = Domain;
         this.Modules = modules;
         this.Timeline = {
             Stages: []
         }
     }
 
-    StageModule(module: RawSubModule, Domain: "Engine" | "Project"): StagedSubModuleInfo {
+    StageModule(module: RawSubModule): StagedSubModuleInfo {
         let StagedModule: StagedSubModuleInfo = {
             Name: module.name,
             Interface: module.interface,
             Implementation: module.implementation,
-            Domain: Domain,
+            Domain: this.Domain,
             Imports: module.imports
         }
+
+        StagedModule.Imports = StagedModule.Imports.filter((obj)=>{ 
+            let notGlobalModule = !((<Module>(this.Root.object)).Imports.includes(obj));
+            let notHeaderUnit = !(/^</.test(obj));
+            return notGlobalModule && notHeaderUnit;
+        }); 
 
         return StagedModule;
     }
@@ -108,7 +118,7 @@ export default class SubModuleSolver {
 
         // Get first leaves ready
         this.Modules.forEach((mod: RawSubModule) => {
-            LeavesBranch.Modules.push(this.StageModule(mod, this.Domain));
+            LeavesBranch.Modules.push(this.StageModule(mod));
         })
 
         this.InteropFrame.Branches = LeavesBranch;

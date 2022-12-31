@@ -46,7 +46,11 @@ export default class Crawler {
                 imports: []
             };
 
+            // read source
+            let fileBuffer = readFileSync(path).toString();
+
             // Get module name
+            module.name = Utils.ExtractFirstTokenAfter(fileBuffer, "module")!;
 
             // Store path of this current unit
             if(path.endsWith('.cppm')) {
@@ -56,6 +60,7 @@ export default class Crawler {
             }
 
             // Parse imports
+            module.imports = Utils.ExtractAllTokensAfter(fileBuffer, "import");
 
             res(module);
         });

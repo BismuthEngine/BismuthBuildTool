@@ -159,4 +159,31 @@ export default class Utils {
 
         return <Type>Final;
     }
+
+    static ExtractFirstTokenAfter(test: string, token: string): string | undefined {
+        let afterText: string[] = test.split(token);
+        
+        if(afterText.length > 1) {
+            let tokenized = afterText[1].split(';');
+            if(tokenized.length > 1) {
+                return tokenized[0].replace(' ', '');
+            }
+        }
+
+        return undefined;
+    }
+
+    static ExtractAllTokensAfter(test: string, token: string): string[] {
+        let afterText: string[] = test.split(token);
+        let tokens: string[] = [];
+
+        for(let artifact of afterText) {
+            let splittedArtifact = artifact.split(';');
+            if(splittedArtifact.length > 1) {
+                tokens.push(splittedArtifact[0].replace(' ', ''));
+            }
+        }
+
+        return tokens;
+    }
 }
