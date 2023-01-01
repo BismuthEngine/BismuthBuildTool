@@ -76,11 +76,9 @@ export default class Crawler {
             Paths = Paths.filter((value)=>{
                 return `${Utils.GetPathFilename(value)}.cppm` != moduleEntry
             });
-            console.log(Paths);
 
             for(let unit of Paths) {
                 let subModule = await this.ParseSubmodule(unit);
-                console.log(subModule);
 
                 let registeredSubModule = SubModules.find(
                     (element)=>{

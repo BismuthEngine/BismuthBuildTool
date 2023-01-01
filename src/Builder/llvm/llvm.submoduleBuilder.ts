@@ -81,7 +81,6 @@ export default class LLVMSubModuleBuilder {
         return new Promise<string[]>((res, rej) => {
             let partMap: PartitionsMap = new PartitionsMap(this.Target, this.Root);
             if(this.Root.Parts) {
-                console.log(this.Root);
                 for(let stage of this.Root.Parts.Stages) {
                     for(let part of stage.Modules) {
                         let modCmd = Cmd;
