@@ -263,7 +263,7 @@ export class LLVMCompileWorker extends CompileWorker {
                         }
                     })
                 } else {
-                    let libCmd = Cmd + PartitionsArtifacts[1] + `-c `;
+                    let libCmd = Cmd + PartitionsArtifacts[0] + PartitionsArtifacts[1] + `-c `;
 
                     let entryName = (<Module>(this.root.Module)).ModuleEntry ? (<Module>(this.root.Module)).ModuleEntry : './' + (<Module>(this.root.Module)).Name;
 

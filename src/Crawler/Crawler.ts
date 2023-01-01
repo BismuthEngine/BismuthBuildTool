@@ -14,6 +14,7 @@ import Deploy from "../Classes/Deploy.js";
 import { pathToFileURL } from "url";
 import Utils from "../utils.js";
 import { createHash } from "crypto";
+import chalk from "chalk";
 
 // Returns Module Tree
 export default class Crawler {
@@ -71,7 +72,7 @@ export default class Crawler {
             let SubModules: RawSubModule[] = [];
             let moduleEntry = (module.ModuleEntry != undefined) ? module.ModuleEntry : (`${module.Name}.cppm`)
 
-            let Paths: string[] = Utils.GetFilesFiltered(path, /(.cppm$)|(.cpp$)/i, true);
+            let Paths: string[] = Utils.GetFilesFiltered(path, /(.cppm$)|(.cpp$)/, true);
             Paths = Paths.filter((value)=>{
                 return `${Utils.GetPathFilename(value)}.cppm` != moduleEntry
             });

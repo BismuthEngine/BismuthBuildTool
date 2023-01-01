@@ -109,10 +109,10 @@ export default class LLVMSubModuleBuilder {
                             // At index 0 we compile interface(it CAN'T not exist)
                             // At index 1 we compile implementation(it CAN not exist)
                             if(i == 0 || part.Implementation.length > 1 ) {
-                                let symCmd = modCmd + ` ${(i == 1) ? part.Implementation : part.Interface} `;
+                                //let symCmd = modCmd + ` ${(i == 1) ? part.Implementation : part.Interface} `;
                                 let partName = `${part.Name + ((i == 1) ? "_implementation" : "_interface")}`;
                                 
-                                let objCmd = symCmd + `-fmodule-file=${pcmFile} -c -o ${resolve(Utils.GetModuleTempBase(this.Root, this.Target), `./${partName}.obj`)}`;
+                                let objCmd = modCmd + ` ${pcmFile} -c -o ${resolve(Utils.GetModuleTempBase(this.Root, this.Target), `./${partName}.obj`)}`;
                                 
                                 try {
                                     if(this.Target.verbose) {
