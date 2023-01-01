@@ -164,9 +164,14 @@ export default class Utils {
         let afterText: string[] = test.split(token);
         
         if(afterText.length > 1) {
+            // Remove ;
             let tokenized = afterText[1].split(';');
+            // Remove spaces
+            tokenized = tokenized[0].replace(' ', '')
+            // Isolate partition name
+            .split(':')
             if(tokenized.length > 1) {
-                return tokenized[0].replace(' ', '');
+                return tokenized[1];
             }
         }
 
@@ -177,8 +182,8 @@ export default class Utils {
         let afterText: string[] = test.split(token);
         let tokens: string[] = [];
 
-        for(let artifact of afterText) {
-            let splittedArtifact = artifact.split(';');
+        for(let idx = 1; idx < afterText.length; idx += 2) {
+            let splittedArtifact = afterText[idx].split(';');
             if(splittedArtifact.length > 1) {
                 tokens.push(splittedArtifact[0].replace(' ', ''));
             }

@@ -81,6 +81,7 @@ export default class LLVMSubModuleBuilder {
         return new Promise<string[]>((res, rej) => {
             let partMap: PartitionsMap = new PartitionsMap(this.Target, this.Root);
             if(this.Root.Parts) {
+                console.log(this.Root);
                 for(let stage of this.Root.Parts.Stages) {
                     for(let part of stage.Modules) {
                         let modCmd = Cmd;
@@ -92,7 +93,7 @@ export default class LLVMSubModuleBuilder {
                         const pcmFile = resolve(Utils.GetModuleTempBase(this.Root, this.Target), `./${part.Name}.pcm`);
                     
                         // Precompile module
-                        let pcmCmd = modCmd + ` --precompile -o ${pcmFile}`;
+                        let pcmCmd = modCmd + ` ${part.Interface} --precompile -o ${pcmFile}`;
                     
                         try {
                             if(this.Target.verbose) {
@@ -105,18 +106,22 @@ export default class LLVMSubModuleBuilder {
                     
                         // Compile symbols
                         for(let i = 0; i < 2; i++) {
-                            let symCmd = modCmd + ` ${(i == 0) ? part.Implementation : part.Interface}`;
-                            let partName = `${part.Name + ((i == 0) ? "_implementation" : "_interface")}`;
-                        
-                            let objCmd = symCmd + `-fmodule-file=${pcmFile} -c -o ${resolve(Utils.GetModuleTempBase(this.Root, this.Target), `./${partName}.obj`)}`;
-                            
-                            try {
-                                if(this.Target.verbose) {
-                                    console.log(`[SUB-OBJ: ${part.Name}] ${objCmd}`);
+                            // At index 0 we compile interface(it CAN'T not exist)
+                            // At index 1 we compile implementation(it CAN not exist)
+                            if(i == 0 || part.Implementation.length > 1 ) {
+                                let symCmd = modCmd + ` ${(i == 1) ? part.Implementation : part.Interface} `;
+                                let partName = `${part.Name + ((i == 1) ? "_implementation" : "_interface")}`;
+                                
+                                let objCmd = symCmd + `-fmodule-file=${pcmFile} -c -o ${resolve(Utils.GetModuleTempBase(this.Root, this.Target), `./${partName}.obj`)}`;
+                                
+                                try {
+                                    if(this.Target.verbose) {
+                                        console.log(`[SUB-OBJ: ${part.Name}] ${objCmd}`);
+                                    }
+                                    execSync(objCmd, {"encoding": "utf8", stdio: 'pipe'});
+                                } catch(err) {
+                                    rej(err);
                                 }
-                                execSync(objCmd, {"encoding": "utf8", stdio: 'pipe'});
-                            } catch(err) {
-                                rej(err);
                             }
                         }
                     

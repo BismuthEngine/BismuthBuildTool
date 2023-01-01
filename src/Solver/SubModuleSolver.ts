@@ -42,7 +42,8 @@ export default class SubModuleSolver {
     PushInteropFrame() {
         if(this.InteropFrame.Staged.length <= 0) {
             // Circular dependency must be
-            console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("Circular dependency detected!"));
+            console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright(`Circular dependency detected in partitions: ${this.Root.object.Name}!`));
+            console.log(chalk.redBright(`\tInterop Frame stack: ${(<SubStage>(this.InteropFrame.Branches)).Modules}`));
             exit(-1);
         }
 

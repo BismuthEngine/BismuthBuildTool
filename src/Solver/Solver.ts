@@ -7,7 +7,7 @@ import DeployAPI from "../Classes/DeployAPI.js";
 import Module from "../Classes/Module";
 import Rules from "../Classes/Rules";
 import { ModuleList, MultiModuleList, RawModule } from "../Types/ModuleList";
-import { Stage, StagedModuleInfo, Timeline } from "../Types/Timeline";
+import { Stage, StagedModuleInfo, SubModuleTimeline, Timeline } from "../Types/Timeline";
 import SubModuleSolver from "./SubModuleSolver.js";
 
 // Solving divides modules into stages, each of which represents Root, Branches or Leaves
@@ -57,8 +57,16 @@ export default class Solver {
         this.InteropFrame.Branches = {Modules: UnstagedModules};
     }
 
+    IsModule(module: RawModule) {
+        return (<Module>(module.object)).Module == true || (<Module>(module.object)).Module == undefined;
+    }
+
     StageModule(module: RawModule, Domain: "Engine" | "Project"): StagedModuleInfo {
-        let subSolver: SubModuleSolver = new SubModuleSolver(module.parts, module, Domain);
+        let Parts: SubModuleTimeline = {Stages: []};
+        if(this.IsModule(module)) {
+            let subSolver: SubModuleSolver = new SubModuleSolver(module.parts, module, Domain);
+            Parts = subSolver.Solve();
+        }
 
         let StagedModule: StagedModuleInfo = {
             Type: module.type,
@@ -69,7 +77,7 @@ export default class Solver {
             DependsOn: [],
             ActualHash: module.hash,
             Domain: Domain,
-            Parts: subSolver.Solve()
+            Parts: Parts
         }
 
         // Get dependencies
