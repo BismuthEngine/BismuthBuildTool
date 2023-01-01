@@ -63,7 +63,7 @@ export default class Utils {
             var stat = lstatSync(filename);
             if (stat.isDirectory()) {
                 if(recursive == true) {
-                    retfiles.concat(this.GetFilesFiltered(filename, filter, recursive));
+                    retfiles = retfiles.concat(this.GetFilesFiltered(filename, filter, recursive));
                 }
             } else if (filter.test(filename)) {
                 retfiles.push(filename);
