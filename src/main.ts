@@ -51,22 +51,6 @@ if((!args.compile.isUsed && !args.project.isUsed)) {
     exit(-1);
 }
 
-// Check if Bismuth tool should be used and is installed
-if(!args.NoBMT) {
-    try {
-        execSync("bismuth-module-tool", {stdio: 'ignore'})
-        console.log(chalk.greenBright.bold("[OK] ") + chalk.greenBright("Found Bismuth Module Tool"));
-    } catch(error) {
-            console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No --no-bmt detected, "+
-            "so Bismuth Module Tool should be used, however it's not installed!") +
-            chalk.redBright("\n\tIt's usually installed by installation script, but you may download it from https://github.com/BismuthEngine/BismuthModuleTool"));
-            exit(-1);
-     };
-} else {
-    console.log(chalk.yellowBright.bold("[WARN] ") + chalk.yellowBright("\tSkipped Bismuth Module Tool\n") +
-    chalk.yellowBright("\tYou shouldn't skip Module-Tool pass in most cases!"));
-}
-
 // Retrieve project file
 try {
     project = Utils.ReadJSON(Utils.GetFilesFiltered(target.projectPath, /\.bismuth/)[0]);

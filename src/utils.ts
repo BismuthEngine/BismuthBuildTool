@@ -160,32 +160,35 @@ export default class Utils {
         return <Type>Final;
     }
 
-    static ExtractFirstTokenAfter(test: string, token: string): string | undefined {
+    static ExtractFirstTokenAfter(test: string, token: RegExp): string | undefined {
         let afterText: string[] = test.split(token);
-        
-        if(afterText.length > 1) {
-            // Remove ;
-            let tokenized = afterText[1].split(';');
-            // Remove spaces
-            tokenized = tokenized[0].replace(' ', '')
-            // Isolate partition name
-            .split(':')
-            if(tokenized.length > 1) {
-                return tokenized[1];
+        if(afterText) {
+            if(afterText.length > 1) {
+                // Remove ;
+                let tokenized = afterText[1].split(';');
+                // Remove spaces
+                tokenized = tokenized[0].replace(' ', '')
+                // Isolate partition name
+                .split(':')
+                if(tokenized.length > 1) {
+                    return tokenized[1].replace(':', '');
+                }
             }
         }
 
         return undefined;
     }
 
-    static ExtractAllTokensAfter(test: string, token: string): string[] {
+    static ExtractAllTokensAfter(test: string, token: RegExp): string[] {
         let afterText: string[] = test.split(token);
         let tokens: string[] = [];
 
-        for(let idx = 1; idx < afterText.length; idx += 2) {
-            let splittedArtifact = afterText[idx].split(';');
-            if(splittedArtifact.length > 1) {
-                tokens.push(splittedArtifact[0].replace(' ', ''));
+        if(afterText) {
+            for(let idx = 1; idx < afterText.length; idx += 2) {
+                let splittedArtifact = afterText[idx].split(';');
+                if(splittedArtifact.length > 1) {
+                    tokens.push(splittedArtifact[0].replace(' ', '').replace(':', ''));
+                }
             }
         }
 

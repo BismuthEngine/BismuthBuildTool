@@ -43,7 +43,8 @@ export default class SubModuleSolver {
         if(this.InteropFrame.Staged.length <= 0) {
             // Circular dependency must be
             console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright(`Circular dependency detected in partitions: ${this.Root.object.Name}!`));
-            console.log(chalk.redBright(`\tInterop Frame stack: ${(<SubStage>(this.InteropFrame.Branches)).Modules}`));
+            console.log(chalk.redBright(`\tInterop Frame stack: ${(<SubStage>(this.InteropFrame.Branches)).Modules.map((obj)=>(obj.Name))}`));
+            console.log(`${(<SubStage>(this.InteropFrame.Branches)).Modules.map((obj)=>(obj.Imports))}`);
             exit(-1);
         }
 
