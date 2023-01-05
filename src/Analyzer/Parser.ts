@@ -39,11 +39,11 @@ class InputReader {
     }
 
     peek(forward: number = 0): string {
-        return this.buffer.at(this.cursor+forward)!;
+        return this.buffer.charAt(this.cursor+forward)!;
     }
 
     read() {
-        let ret = this.buffer.at(this.cursor)!;
+        let ret = this.buffer.charAt(this.cursor)!;
         this.cursor++;
         return ret;
     }
@@ -56,6 +56,7 @@ class InputReader {
 // Lexer generates token list, useful for Crawler's module imports resolution
 export class Lexer {
     reader: InputReader;
+    private cursor: number = 0;
 
     tokens: string[] = [];
 
@@ -208,12 +209,18 @@ export class Lexer {
         this.submit(curToken);
     }
 
-    peek(forward: number = 0) {
-        
+    peek(): string {
+        return this.tokens[this.cursor];
     }
 
-    read(forward: number = 0) {
-        
+    read(): string{
+        let ret = this.tokens[this.cursor]
+        this.cursor++;
+        return ret;
+    }
+
+    eof(): boolean {
+        return this.cursor >= (this.tokens.length - 1);
     }
 }
 

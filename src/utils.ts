@@ -4,6 +4,7 @@ import Module from "./Classes/Module";
 import { join, resolve } from "path";
 import { pathToFileURL } from "url";
 import { StagedModuleInfo, StagedSubModuleInfo } from "./Types/Timeline";
+import { Lexer } from "./Analyzer/Parser";
 
 export default class Utils {
     static GetPlatform(platform: string): Platform {
@@ -160,38 +161,46 @@ export default class Utils {
         return <Type>Final;
     }
 
-    static ExtractFirstTokenAfter(test: string, token: RegExp): string | undefined {
-        let afterText: string[] = test.split(token);
-        if(afterText) {
-            if(afterText.length > 1) {
-                // Remove ;
-                let tokenized = afterText[1].split(';');
-                // Remove spaces
-                tokenized = tokenized[0].replace(' ', '')
-                // Isolate partition name
-                .split(':')
-                if(tokenized.length > 1) {
-                    return tokenized[1].replace(':', '');
+    // Next utility functions should be removed in production
+    // Use Module Tool instead
+    static GetImportParts(lexer: Lexer): string[] {
+        let imports: string[] = [];
+
+        while(lexer.eof() == false) {
+            let token: string = lexer.read();
+
+            if (token == "import") {
+                let imp: string = lexer.read();
+                if(lexer.peek() == ";") {
+                    if(imp.includes(':')) {
+                        imports.push(imp.split(':')[1].replace(':', ''));
+                    } else {
+                        // Global module import, not partition
+                    }
+                } else {
+                    throw "Expected ; after import!"
                 }
             }
         }
 
-        return undefined;
+        return imports;
     }
 
-    static ExtractAllTokensAfter(test: string, token: RegExp): string[] {
-        let afterText: string[] = test.split(token);
-        let tokens: string[] = [];
+    static GetPartitionName(lexer: Lexer): string {
 
-        if(afterText) {
-            for(let idx = 1; idx < afterText.length; idx += 2) {
-                let splittedArtifact = afterText[idx].split(';');
-                if(splittedArtifact.length > 1) {
-                    tokens.push(splittedArtifact[0].replace(' ', '').replace(':', ''));
+        while(lexer.eof() == false) {
+            let token: string = lexer.read();
+
+            if(token == "module") {
+                let moduleName = lexer.read();
+                if(moduleName.includes(':')) {
+                    return moduleName.split(':')[1].replace(':', '')
+                } else {
+                    // Global module, not a partition
                 }
             }
         }
 
-        return tokens;
+        return "";
     }
 }

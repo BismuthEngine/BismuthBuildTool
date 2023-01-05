@@ -15,6 +15,7 @@ import { pathToFileURL } from "url";
 import Utils from "../utils.js";
 import { createHash } from "crypto";
 import chalk from "chalk";
+import { Lexer } from "../Analyzer/Parser.js";
 
 // Returns Module Tree
 export default class Crawler {
@@ -47,11 +48,11 @@ export default class Crawler {
                 imports: []
             };
 
-            // read source
-            let fileBuffer = readFileSync(path).toString();
+            // Create lexer
+            let lexer = new Lexer(path);
 
             // Get module name
-            module.name = Utils.ExtractFirstTokenAfter(fileBuffer, /(^module)|(\smodule)/m)!;
+            module.name = Utils.GetPartitionName(lexer);
 
             // Store path of this current unit
             if(path.endsWith('.cppm')) {
@@ -61,7 +62,7 @@ export default class Crawler {
             }
 
             // Parse imports
-            module.imports = Utils.ExtractAllTokensAfter(fileBuffer, /(^import)|(\simport)/m);
+            module.imports = Utils.GetImportParts(lexer);
 
             res(module);
         });

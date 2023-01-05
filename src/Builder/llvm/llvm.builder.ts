@@ -220,7 +220,11 @@ export class LLVMCompileWorker extends CompileWorker {
     
                 // Compile partitions, if bismuth module is c++20 module
                 if(this.IsModule()) {
-                    PartitionsArtifacts = await (new LLVMSubModuleBuilder(this.Target, this.root)).Build(Cmd);
+                    try {
+                        PartitionsArtifacts = await (new LLVMSubModuleBuilder(this.Target, this.root)).Build(Cmd);
+                    } catch(err) {
+                        rej(err);
+                    }
                 }
 
                 // Precompile module (if should)
