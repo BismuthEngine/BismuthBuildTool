@@ -40,6 +40,10 @@ export default class Crawler {
     }
 
     private async ParseSubmodule(path: string): Promise<RawSubModule> {
+        if(this.CompilationTarget.verbose == true) {
+            console.log(`Parsing submodule: ${path}`);
+        }
+
         return new Promise<RawSubModule>((res, rej)=>{
             let module: RawSubModule = {
                 name: "",
@@ -49,10 +53,10 @@ export default class Crawler {
             };
 
             // Create lexer
-            let lexer = new Lexer(path);
+            let lexer = new Lexer(path, this.CompilationTarget.verbose);
 
             // Get module name
-            module.name = Utils.GetPartitionName(lexer);
+            module.name = Utils.GetPartitionName(lexer, this.CompilationTarget.verbose);
 
             // Store path of this current unit
             if(path.endsWith('.cppm')) {
@@ -62,7 +66,7 @@ export default class Crawler {
             }
 
             // Parse imports
-            module.imports = Utils.GetImportParts(lexer);
+            module.imports = Utils.GetImportParts(lexer, this.CompilationTarget.verbose);
 
             res(module);
         });
@@ -78,6 +82,10 @@ export default class Crawler {
                 return `${Utils.GetPathFilename(value)}.cppm` != moduleEntry
             });
 
+            if(this.CompilationTarget.verbose == true) {
+                console.log(`Requested submodules: ${Paths}`);
+            }
+
             for(let unit of Paths) {
                 let subModule = await this.ParseSubmodule(unit);
 
@@ -88,8 +96,14 @@ export default class Crawler {
                 );
 
                 if(!registeredSubModule) {
+                    if(this.CompilationTarget.verbose == true) {
+                        console.log(`Pushing submodule: ${subModule.name}`);
+                    }
                     SubModules.push(subModule);
                 } else {
+                    if(this.CompilationTarget.verbose == true) {
+                        console.log(`Merging submodule units: ${subModule.name}`);
+                    }
                     SubModules[SubModules.indexOf(registeredSubModule)] = Utils.MergeObj<RawSubModule>(registeredSubModule, subModule);
                 }
             }
@@ -109,8 +123,13 @@ export default class Crawler {
             let files = (await readdir(path, {encoding: "utf8"}));
             for(let i = 0; i < files.length; i++) {
                 let filepath = join(path, files[i]);
+
+                if(this.CompilationTarget.verbose == true) {
+                    console.log(`Crawler found: ${filepath}`);
+                }
+
                 let stat = await lstat(filepath);
-                    //console.log(filepath);
+                    
                 if(stat.isDirectory()) {
                     await this.CollectFolder(filepath, modlist);
                 } else if (/\.module\.js/.test(filepath))
@@ -179,6 +198,9 @@ export default class Crawler {
     }
 
     async ImportClass(path: string) {
+        if(this.CompilationTarget.verbose == true) {
+            console.log(`Importing class: ${path}`);
+        }
         return (await import(pathToFileURL(path).toString())).default as any;
     }
     

@@ -57,11 +57,13 @@ class InputReader {
 export class Lexer {
     reader: InputReader;
     private cursor: number = 0;
+    private verbose;
 
     tokens: string[] = [];
 
-    constructor(path: string) {
+    constructor(path: string, verbose = false) {
         this.reader = new InputReader(path);
+        this.verbose = verbose;
 
         this.Tokenize();
     }
@@ -76,6 +78,10 @@ export class Lexer {
         let curToken = "";
         while(this.reader.eof() == false) {
             let char = this.reader.read();
+
+            if(this.verbose) {
+                //process.stdout.write(char);
+            }
 
             // Strings or Characters are one token
             if(/[\"\']/.test(char)) {

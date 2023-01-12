@@ -181,7 +181,7 @@ export class LLVMCompileWorker extends CompileWorker {
             return new Promise<void>(async (res, rej) => {
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), `./Intermediate/Modules/${this.root.Name}_temp`), {recursive: true});
 
-                let Cmd = `${this.CompBase} ${this.Target.debug ? "-g -O0 " : "-O3 "} `;
+                let Cmd = `${this.CompBase} ${this.Target.debug ? "-g -O0 " : "-O3 "} -Wall `;
 
                 Cmd += this.DefinePlatforms();
 

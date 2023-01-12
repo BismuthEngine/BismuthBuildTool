@@ -110,8 +110,11 @@ export default class LLVMSubModuleBuilder {
                             if(i == 0 || part.Implementation.length > 1 ) {
                                 //let symCmd = modCmd + ` ${(i == 1) ? part.Implementation : part.Interface} `;
                                 let partName = `${part.Name + ((i == 1) ? "_implementation" : "_interface")}`;
+
+                                let SourceFile = (i == 0) ? pcmFile : part.Implementation;
+                                let PCMReq = (i == 1) ? `-fmodule-file=${pcmFile}`  : '';
                                 
-                                let objCmd = modCmd + ` ${pcmFile} -c -o ${resolve(Utils.GetModuleTempBase(this.Root, this.Target), `./${partName}.obj`)}`;
+                                let objCmd = modCmd + ` ${PCMReq} ${SourceFile} -c -o ${resolve(Utils.GetModuleTempBase(this.Root, this.Target), `./${partName}.obj`)}`;
                                 
                                 try {
                                     if(this.Target.verbose) {

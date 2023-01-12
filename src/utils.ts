@@ -163,14 +163,22 @@ export default class Utils {
 
     // Next utility functions should be removed in production
     // Use Module Tool instead
-    static GetImportParts(lexer: Lexer): string[] {
+    static GetImportParts(lexer: Lexer, verbose = false): string[] {
         let imports: string[] = [];
+        if(verbose) {
+            console.log(`Getting partition imports`);
+        }
 
         while(lexer.eof() == false) {
             let token: string = lexer.read();
 
             if (token == "import") {
                 let imp: string = lexer.read();
+
+                if(verbose) {
+                    console.log(imp);
+                }
+
                 if(lexer.peek() == ";") {
                     if(imp.includes(':')) {
                         imports.push(imp.split(':')[1].replace(':', ''));
@@ -186,10 +194,16 @@ export default class Utils {
         return imports;
     }
 
-    static GetPartitionName(lexer: Lexer): string {
-
+    static GetPartitionName(lexer: Lexer, verbose = false): string {
+        if(verbose) {
+            console.log(`Getting partition name`);
+        }
         while(lexer.eof() == false) {
             let token: string = lexer.read();
+
+            if(verbose) {
+                console.log(token);
+            }
 
             if(token == "module") {
                 let moduleName = lexer.read();

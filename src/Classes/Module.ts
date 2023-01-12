@@ -13,6 +13,8 @@ export default class Module {
     Imports: string[] = []
     // Specifies files to include into build pipeline
     Exports: string[] = []
+    // Specifies files to exclude from build pipeline
+    Exclude: string[] = []
     // Module(.cppm) that would be compiled as a module
     ModuleEntry: string
     // C++20 Modules support, if false, compile legacy (excludes from BMT)
