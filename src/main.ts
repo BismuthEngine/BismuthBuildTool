@@ -33,10 +33,11 @@ const target: Target = {
     entry: "",
     projectPath: (args.project.isUsed ? resolve(__dirname, extractProjDir(args.project.arg)) : (args.compile.isUsed ? resolve(__dirname, extractProjDir(args.compile.arg)) : "")),
     EnvArgs: process.env,
-    editorMode: args.EditorCompilation,
+    configuration: (args.Configuration.isUsed ? args.Configuration.arg : ""),
     debug: args.Debug,
     outputhPath: (args.Output.isUsed ? args.Output.arg : "./Build"),
-    verbose: args.Verbose
+    verbose: args.Verbose,
+    name: ""
 }
 
 var project: Project;
@@ -54,6 +55,9 @@ if((!args.compile.isUsed && !args.project.isUsed)) {
 // Retrieve project file
 try {
     project = Utils.ReadJSON(Utils.GetFilesFiltered(target.projectPath, /\.bismuth/)[0]);
+
+    target.name = project.Name;
+    
     if(args.project.isUsed) {
         if(project.EnginePath) {
             target.enginePath = project.EnginePath;
@@ -86,7 +90,6 @@ try {
     console.log(chalk.redBright.bold("[ERROR] ") + chalk.redBright("No correct .bismuth file provided!"));
     exit(-1);
 }
-
 
 const CompilationToolkit: Toolkit = Utils.GetToolkit(target);
 

@@ -152,16 +152,9 @@ export default class Crawler {
                         hash: "",
                         parts: []
                     })
-                } else if (/\.rules\.js/.test(filepath) && !(/Editor\.rules\.js/.test(filepath)))
+                } else if (filepath.endsWith(`${this.CompilationTarget.configuration}.rules.js`))
                 {
-                    if(!this.CompilationTarget.editorMode) {
-                        modlist.Rules= (new (await this.ImportClass(filepath))(this.CompilationTarget) as Rules)
-                    }
-                } else if (/Editor\.rules\.js/.test(filepath))
-                {
-                    if(this.CompilationTarget.editorMode) {
-                        modlist.Rules =(new (await this.ImportClass(filepath))(this.CompilationTarget) as Rules)
-                    }
+                        modlist.Rules = (new (await this.ImportClass(filepath))(this.CompilationTarget) as Rules)
                 }
             }
 

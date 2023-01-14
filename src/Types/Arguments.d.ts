@@ -29,7 +29,10 @@ interface Arguments {
         arg: string
     },
     UpdateEngine: boolean,
-    EditorCompilation: boolean,
+    Configuration: {
+        isUsed: boolean,
+        arg: string
+    },
     NoBMT: boolean,
     Debug: boolean,
     Verbose: boolean

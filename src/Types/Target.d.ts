@@ -12,7 +12,8 @@ interface Target {
     outputhPath: string
     EnvArgs: NodeJS.ProcessEnv,
     entry: string,
-    editorMode: boolean,
+    configuration: string,
     debug: boolean,
-    verbose: boolean
+    verbose: boolean,
+    name: string
 }

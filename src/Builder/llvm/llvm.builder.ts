@@ -47,10 +47,10 @@ export class LLVMCompileWorker extends CompileWorker {
                 this.LDBase = "lld-link ";
                 break;
             case "Unix": 
-                this.LDBase = "ld.lld ";
+                this.LDBase = "ld.lld -r";
                 break;
             case "Mach": 
-                this.LDBase = "ld64.lld ";
+                this.LDBase = "ld64.lld -r";
                 break;
         }
     }
@@ -353,7 +353,8 @@ export default class LLVMBuilder extends Builder {
                 Cmd += `${Utils.GetModuleIntermediateBase(final, this.CompilationTarget)}.lib `;
             }
 
-            Cmd += ` -o ${resolve(Utils.GetOutputBase(this.CompilationTarget), './App.exe')}`;
+            let fileext = `exe`;
+            Cmd += ` -o ${resolve(Utils.GetOutputBase(this.CompilationTarget), `./${this.CompilationTarget.name}${this.CompilationTarget.configuration}_${this.CompilationTarget.platform}_${this.CompilationTarget.arch}.${fileext}`)}`;
 
             if(this.CompilationTarget.verbose){
                 console.log(chalk.bold('[FINAL] ') + Cmd);

@@ -19,7 +19,6 @@ export default function (args: string[]): Arguments {
             arg: "x86_32"
         },
         UpdateEngine: false,
-        EditorCompilation: false,
         NoBMT: false,
         VisualStudioProject: {
             isUsed: false,
@@ -32,6 +31,10 @@ export default function (args: string[]): Arguments {
         Debug: false,
         Verbose: false,
         Output: {
+            isUsed: false,
+            arg: ""
+        },
+        Configuration: {
             isUsed: false,
             arg: ""
         }
@@ -57,8 +60,11 @@ export default function (args: string[]): Arguments {
             case "-U":
                 result.UpdateEngine = true;
                 break;
-            case "--editor":
-                result.EditorCompilation = true;
+            case "--config":
+                result.Configuration.isUsed = true;
+                i++;
+                argument = args[i];
+                result.Configuration.arg = argument.charAt(0).toUpperCase() + argument.slice(1);
                 break;
             case "--platform":
                 result.platform.isUsed = true;
