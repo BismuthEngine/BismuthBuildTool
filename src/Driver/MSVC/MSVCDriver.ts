@@ -53,6 +53,10 @@ export default class MSVCDriver extends Driver {
             exec += `/ifcOutput ${this.precompiledOutput} `;
         }
 
+        for(let dir of this.precompiledSearchDir) {
+            exec += `/ifcSearchDir ${dir} `;
+        }
+
         if(this.compile) {
             exec += `/Fe"${this.objectOutput}" `;
         } else {

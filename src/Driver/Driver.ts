@@ -20,6 +20,14 @@ export default class Driver {
     protected precompiledOutput: string = '';
     protected debugOutput: string = '';
 
+    protected precompiledSearchDir: string[] = [];
+
+    Branch = (): Driver => {return {...this};}
+
+    AddPrecompiledSearchDir(path: string) {
+        this.precompiledSearchDir.push(path);
+    }
+
     SetExecutor(executor: Executor) {
         this.executor = executor;
     }
@@ -63,7 +71,6 @@ export default class Driver {
     SetPrecompiledOutput(path: string) {
         this.precompiledOutput = path;
     }
-
 
     Flush(): string {
         return '';

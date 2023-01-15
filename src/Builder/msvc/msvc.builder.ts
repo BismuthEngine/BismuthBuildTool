@@ -272,7 +272,7 @@ export class MSVCCompileWorker extends CompileWorker {
         }
 }
 
-export default class LLVMBuilder extends Builder {
+export default class MSVCBuilder extends Builder {
 
     CreateCompileWorker(): CompileWorker {
         return new MSVCCompileWorker(this.CompilationTarget);
