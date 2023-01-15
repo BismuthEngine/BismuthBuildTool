@@ -51,11 +51,11 @@ export class MSVCCompileWorker extends CompileWorker {
                 let deploy: Deploy = <Deploy>(mod.Module);
 
                 if (deploy.LinkerOptions) deploy.LinkerOptions.forEach((opt) => {
-                    Cmd += `-l${opt} `;
+                    //Cmd += `${opt} `;
                 });
 
                 if (deploy.Includes) deploy.Includes.forEach((inc) => {
-                    Cmd += `-I${resolve(mod.Path, inc)} `;
+                    Cmd += `/I "${resolve(mod.Path, inc)}" `;
                 });
 
                 if (deploy.StaticLibs) deploy.StaticLibs.forEach((so) => {
@@ -66,7 +66,7 @@ export class MSVCCompileWorker extends CompileWorker {
                 let module: Module = <Module>(mod.Module);
                 if(module.Includes){
                     module.Includes.forEach((inc) => {
-                        Cmd += `/I${resolve(mod.Path, inc)} `;
+                        Cmd += `/I "${resolve(mod.Path, inc)}" `;
                     });
                 }
 
@@ -139,7 +139,7 @@ export class MSVCCompileWorker extends CompileWorker {
             return new Promise<void>(async (res, rej) => {
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), `./Intermediate/Modules/${this.root.Name}_temp`), {recursive: true});
 
-                let Cmd = `${this.CompBase} ${this.Target.debug ? "/DEBUG /Od " : "/O2"} /Wall `;
+                let Cmd = `${this.CompBase} ${this.Target.debug ? "/DEBUG /Od " : "/O2"} /Wall /EHsc /experimental:module `;
 
                 Cmd += this.DefinePlatforms();
 
@@ -155,10 +155,10 @@ export class MSVCCompileWorker extends CompileWorker {
                 // Resolves dependencies for [.LIB] files
                 for(let modlIdx = 0; modlIdx < this.Modules.length; modlIdx++) {
                     if(this.Modules[modlIdx].Type == "Module") { 
-                        Cmd += ` ` + resolve(Utils.GetRootFolderForModule(this.Modules[modlIdx], this.Target), 
+                        Cmd += resolve(Utils.GetRootFolderForModule(this.Modules[modlIdx], this.Target), 
                                             "./Intermediate/Modules/", 
                                             `./${this.Modules[modlIdx].Name}.lib`) + " ";
-                        lldCmd += '/libpath ' + resolve(Utils.GetRootFolderForModule(this.Modules[modlIdx], this.Target), 
+                        lldCmd += resolve(Utils.GetRootFolderForModule(this.Modules[modlIdx], this.Target), 
                                             "./Intermediate/Modules/", 
                                             `./${this.Modules[modlIdx].Name}.lib`) + " ";
                     } else {
@@ -182,23 +182,6 @@ export class MSVCCompileWorker extends CompileWorker {
                         PartitionsArtifacts = await (new MSVCSubModuleBuilder(this.Target, this.root)).Build(Cmd);
                     } catch(err) {
                         rej(err);
-                    }
-                }
-
-                // Precompile module (if should)
-                if(this.IsModule()) {
-                    let pcmCmd = Cmd + PartitionsArtifacts[0] + `/ifcOutput ${Utils.GetModuleIntermediateBase(this.root, this.Target)}.ifc `;
-
-                    pcmCmd += resolve(dirname(this.root.Path), `./${this.GetModuleFile()} `) + " ";
-                    
-                    if(this.Target.verbose){
-                        console.log(chalk.bold('[IFC] ') + pcmCmd);
-                    }
-                    
-                    try {
-                        execSync(pcmCmd, {"encoding": "utf8", stdio: 'pipe'});
-                    } catch( stderr ) {
-                        rej(stderr.stderr);
                     }
                 }
 
@@ -239,8 +222,9 @@ export class MSVCCompileWorker extends CompileWorker {
                     }
 
                     for(let file of compileQueue) {
-                        let objPath = `${resolve(Utils.GetModuleTempBase(this.root, this.Target), Utils.GetPathFilename(file.path))}_${file.unit}.obj`;
-                        let curLibCmd = libCmd + ` ${file.path} /Fo"${objPath}" `;
+                        let objPath = `${resolve(Utils.GetModuleTempBase(this.root, this.Target), Utils.GetPathFilename(file.path))}_${file.unit}`;
+                        let ifcPath = `${Utils.GetModuleIntermediateBase(this.root, this.Target)}`;
+                        let curLibCmd = libCmd + ` ${file.path} /ifcOutput ${ifcPath}.ifc /Fo"${objPath}.obj" `;
 
                         try {
                             if(this.Target.verbose){
@@ -248,7 +232,8 @@ export class MSVCCompileWorker extends CompileWorker {
                             }
                             execSync(curLibCmd, {"encoding": "utf8", stdio: 'pipe'});
 
-                            PartitionsArtifacts[1] += ` ${objPath}`;
+                            PartitionsArtifacts[1] += ` ${objPath}.obj`;
+                            PartitionsArtifacts[0] += ` /reference ${objPath}.ifc`;
                         } catch( stderr ) {
                             rej(stderr.stderr);
                         }
