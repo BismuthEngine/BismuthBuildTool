@@ -57,6 +57,10 @@ export default class MSVCDriver extends Driver {
             exec += `/ifcSearchDir ${dir} `;
         }
 
+        for(let incl of this.includes) {
+            exec += `/I ${incl} `;
+        }
+
         if(this.compile) {
             exec += `/Fe"${this.objectOutput}" `;
         } else {

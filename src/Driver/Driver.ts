@@ -13,6 +13,8 @@ export default class Driver {
     protected precompiled: string[] = [];
     protected objects: string[] = [];
     protected defines: string[] = [];
+    protected includes: string[] = [];
+    protected precompiledSearchDir: string[] = [];
 
     protected compile: boolean = true;
 
@@ -20,16 +22,19 @@ export default class Driver {
     protected precompiledOutput: string = '';
     protected debugOutput: string = '';
 
-    protected precompiledSearchDir: string[] = [];
+    
 
     Branch = (): Driver => {return {...this};}
+
+    SetExecutor(executor: Executor) {
+        this.executor = executor;
+    }
 
     AddPrecompiledSearchDir(path: string) {
         this.precompiledSearchDir.push(path);
     }
-
-    SetExecutor(executor: Executor) {
-        this.executor = executor;
+    AddInclude(path: string) {
+        this.includes.push(path);
     }
 
     AddPrecompiled(path: string) {
