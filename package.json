@@ -8,6 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "node ./dist/main.js",
+    "install": "npm i typescript @types/node chalk",
     "postinstall": "tsc"
   },
   "author": "SasisaDev",
