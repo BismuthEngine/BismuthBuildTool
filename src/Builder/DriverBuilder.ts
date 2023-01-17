@@ -5,9 +5,11 @@ import { dirname, resolve } from "path";
 import Builder, { CompileWorker } from "./builder.js";
 import Deploy from "../Classes/Deploy.js";
 import Module from "../Classes/Module.js";
-import { StagedModuleInfo, StagedSubModuleInfo } from "../Types/Timeline.js";
+import { StagedModuleInfo, StagedSubModuleInfo, Timeline } from "../Types/Timeline.js";
 import Utils from "../utils.js";
 import Driver from "../Driver/Driver.js";
+
+type PartitionData = {precompiled: string, objects: string[]};
 
 class PartitionsMap {
     Partitions: StagedSubModuleInfo[] = [];
@@ -18,17 +20,59 @@ class PartitionsMap {
         this.Target = target;
         this.Root = root;
     }
+
+    AddModule(module: StagedSubModuleInfo) {
+        this.Partitions.push(module);
+    }
+
+    private GetBase(name: string): string {
+        return resolve(Utils.GetModuleTempBase(this.Root, this.Target), `./${name}`);
+    }
     
     // Returns artifact for clang compiler
     // Artifact contains .pcm links & .obj links
     // Resolves dependency for specified partition
-    GetPartitionArtifact(name: string): string {
+    GetPartitionArtifact(name: string): PartitionData | undefined {
+        let part = this.Partitions.find((obj) => {
+            return (obj.Name === name);
+        })
 
-        return '';
+        if(part !== undefined) {
+            // There can't be no interface
+            let objects: string[] = [`${this.GetBase(part.Name)}_interface.obj`];
+            if(part.Implementation.length > 0) {
+                objects.push(`${this.GetBase(part.Name)}_implementation.obj`);
+            }
+
+            let ret: PartitionData = {
+                precompiled: `${this.GetBase(part.Name)}`,
+                objects: objects
+            }
+            return ret;
+        }
+
+        return;
     }
 
-    GetAllPartitionArtifact(): string[] {
-        return [];
+    GetAllPartitionArtifact(): PartitionData[] {
+        let parts: PartitionData[] = [];
+
+        for(let part of this.Partitions) {
+            // There can't be no interface
+            let objects: string[] = [`${this.GetBase(part.Name)}_interface.obj`];
+            if(part.Implementation.length > 0) {
+                objects.push(`${this.GetBase(part.Name)}_implementation.obj`);
+            }
+
+            let ret: PartitionData = {
+                precompiled: `${this.GetBase(part.Name)}`,
+                objects: objects
+            }
+
+            parts.push(ret);
+        }
+
+        return parts;
     }
 }
 
@@ -65,8 +109,7 @@ export class DriverCompileWorker extends CompileWorker {
         this.linkerRequests.push(req);
     }
 
-    CmdModifyDependencies(): string {
-        let Cmd: string = " ";
+    ModifyDependencies(driver: Driver) {
         this.Modules.forEach(mod => {
             if(mod.Type == "Deploy") {
                 // Deploy modifications
@@ -77,18 +120,18 @@ export class DriverCompileWorker extends CompileWorker {
                 });
 
                 if (deploy.Includes) deploy.Includes.forEach((inc) => {
-                    Cmd += `/I "${resolve(mod.Path, inc)}" `;
+                    driver.AddInclude(resolve(mod.Path, inc));
                 });
 
                 if (deploy.StaticLibs) deploy.StaticLibs.forEach((so) => {
-                    Cmd += `${resolve(mod.Path, so)} `;
+                    driver.AddObject(resolve(mod.Path, so));
                 });
             } else {
                 // Module modifications
                 let module: Module = <Module>(mod.Module);
                 if(module.Includes){
                     module.Includes.forEach((inc) => {
-                        Cmd += `/I "${resolve(mod.Path, inc)}" `;
+                        driver.AddInclude(resolve(mod.Path, inc));
                     });
                 }
 
@@ -98,7 +141,7 @@ export class DriverCompileWorker extends CompileWorker {
                 try {
                     //accessSync(ModuleLibPath, constants.R_OK);
 
-                    Cmd += ModuleLibPath; 
+                    driver.AddObject(ModuleLibPath); 
                 } catch(err) {
                     throw `Couldn't find compiled module at path: ${ModuleLibPath}`;
                 } 
@@ -107,11 +150,9 @@ export class DriverCompileWorker extends CompileWorker {
 
         if(this.root.Module.LinkerOptions) {
             this.root.Module.LinkerOptions.forEach((opt) => {
-                Cmd += `-l${opt} `;
+                //Cmd += `-l${opt} `;
             });
         }
-
-        return Cmd;
     }
 
     IsModule() {
@@ -163,6 +204,7 @@ export class DriverCompileWorker extends CompileWorker {
             });
         else
             return new Promise<void>(async (res, rej) => {
+                /*
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), `./Intermediate/Modules/${this.root.Name}_temp`), {recursive: true});
 
                 let driver = this.driver.Branch();
@@ -183,7 +225,7 @@ export class DriverCompileWorker extends CompileWorker {
                 }
                 driver.AddPrecompiledSearchDir(resolve(this.Target.projectPath, "./Intermediate/Modules/"));
 
-                Cmd += this.CmdModifyDependencies();
+                this.ModifyDependencies(driver);
 
                 // Resolves dependencies for [.LIB] files
                 for(let modlIdx = 0; modlIdx < this.Modules.length; modlIdx++) {
@@ -213,32 +255,13 @@ export class DriverCompileWorker extends CompileWorker {
                     } catch(err) {
                         rej(err);
                     }
-                }
 
-                // Compile object files into temp directory
-                if(!this.IsModule()) {
-                    let libCmd = Cmd;
-                    
-                    let Files = this.GetRootCompilationFiles();
-                    // console.log(chalk.magenta(Files));
-
-                    Files.forEach(file => {
-                        let objPath = `${resolve(Utils.GetModuleTempBase(this.root, this.Target), Utils.GetPathFilename(file))}.obj`;
-                        PartitionsArtifacts[1] += ` ${objPath} `;
-                        let curLibCmd = libCmd + ` ${file} /Fo"${objPath}" `
-
-                        if(this.Target.verbose){
-                            console.log(chalk.bold('[LIB] ') + curLibCmd);
+                    for(let part of PartitionsArtifacts!.GetAllPartitionArtifact()) {
+                        driver.AddPrecompiled(part.precompiled);
+                        for(let obj of part.objects) {
+                            driver.AddObject(obj);
                         }
-                    
-                        try {
-                            execSync(curLibCmd, {"encoding": "utf8", stdio: 'pipe'});
-                        } catch( stderr ) {
-                            rej(stderr.stderr);
-                        }
-                    })
-                } else {
-                    let libCmd = Cmd + PartitionsArtifacts[0] + PartitionsArtifacts[1] + ` `;
+                    }
 
                     let entryName = (<Module>(this.root.Module)).ModuleEntry ? (<Module>(this.root.Module)).ModuleEntry : './' + (<Module>(this.root.Module)).Name;
 
@@ -268,6 +291,30 @@ export class DriverCompileWorker extends CompileWorker {
                             rej(stderr.stderr);
                         }
                     }
+                }
+
+                // Compile object files into temp directory
+                if(!this.IsModule()) {
+                    let Files = this.GetRootCompilationFiles();
+                    // console.log(chalk.magenta(Files));
+
+                    Files.forEach(file => {
+                        let objPath = `${resolve(Utils.GetModuleTempBase(this.root, this.Target), Utils.GetPathFilename(file))}.obj`;
+                        PartitionsArtifacts[1] += ` ${objPath} `;
+                        let curLibCmd = libCmd + ` ${file} /Fo"${objPath}" `
+
+                        if(this.Target.verbose){
+                            console.log(chalk.bold('[LIB] ') + curLibCmd);
+                        }
+                    
+                        try {
+                            execSync(curLibCmd, {"encoding": "utf8", stdio: 'pipe'});
+                        } catch( stderr ) {
+                            rej(stderr.stderr);
+                        }
+                    })
+                } else {
+                    
                     // Module main entry consists of Interface Unit & Implementation Unit(optional)
                     // We find those using .module.js's ModuleEntry files (module name if entry is null)
                     // We assemble them into .obj & concat artifacts
@@ -275,6 +322,8 @@ export class DriverCompileWorker extends CompileWorker {
 
                 // Link against dependencies 
                 const libName = `${Utils.GetModuleIntermediateBase(this.root, this.Target)}`;
+
+                let linkerDriver: Driver = driver.Branch();
                 
                 lldCmd += ` ` +
                           ` ${PartitionsArtifacts[1]}` +
@@ -298,14 +347,21 @@ export class DriverCompileWorker extends CompileWorker {
 
                 // Return
                 res();
+                */
             })
         }
 }
 
-export default class LLVMBuilder extends Builder {
+export default class DriverBuilder extends Builder {
+    driver: Driver;
+
+    constructor(target: Target, timeline: Timeline, driver: Driver) {
+        super(target, timeline);
+        this.driver = driver;
+    }
 
     CreateCompileWorker(): CompileWorker {
-        return new MSVCCompileWorker(this.CompilationTarget);
+        return new DriverCompileWorker(this.CompilationTarget, this.driver);
     }
 
     async Finalize(): Promise<void> {

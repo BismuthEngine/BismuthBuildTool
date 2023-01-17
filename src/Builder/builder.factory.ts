@@ -5,5 +5,5 @@ import { Timeline } from "../Types/Timeline.js";
 
 export default function CreateBuilderInstance(target: Target, timeline: Timeline): Builder
 {
-    return new MSVCBuilder(target, timeline);
+    return new LLVMBuilder(target, timeline);
 }

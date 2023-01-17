@@ -1,6 +1,6 @@
 
 type OptimizationLevel = "Debug" | "Performance" | "Space";
-type Executor = "Linker" | "Compiler";
+type Executor = "Linker" | "Compiler" | "Resource";
 
 export default class Driver {
     protected executor: Executor = 'Compiler';
@@ -22,12 +22,21 @@ export default class Driver {
     protected precompiledOutput: string = '';
     protected debugOutput: string = '';
 
-    
+    protected arch: Arch = "x86_64";
+    protected platform: Platform = "Win32";
 
     Branch = (): Driver => {return {...this};}
 
     SetExecutor(executor: Executor) {
         this.executor = executor;
+    }
+
+    SetArch(arch: Arch) {
+        this.arch = arch;
+    }
+
+    SetPlatform(platform: Platform) {
+        this.platform = platform;
     }
 
     AddPrecompiledSearchDir(path: string) {
