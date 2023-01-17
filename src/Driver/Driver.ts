@@ -10,6 +10,8 @@ export default class Driver {
 
     protected interface: boolean = false;
 
+    // Inputs
+    protected sourceFile: string = '';
     protected precompiled: string[] = [];
     protected objects: string[] = [];
     protected defines: string[] = [];
@@ -29,6 +31,10 @@ export default class Driver {
 
     SetExecutor(executor: Executor) {
         this.executor = executor;
+    }
+    
+    SetSource(source: string) {
+        this.sourceFile = source;
     }
 
     SetArch(arch: Arch) {

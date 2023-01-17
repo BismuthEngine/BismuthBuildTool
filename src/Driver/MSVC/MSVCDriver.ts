@@ -7,11 +7,11 @@ export default class MSVCDriver extends Driver {
 
         switch(this.executor) {
             case "Compiler":
-                exec += "cl.exe /nologo /W3 /WX- /EHsc ";
+                exec += "cl.exe /nologo /W3 /WX- /EHsc /std:c++20 ";
                 if(this.interface){
                     exec += `/TP /interface `;
                     exec += `/experimental:module `;
-                    exec += `/ifcOutput ${this.precompiledOutput} `;
+                    exec += `/ifcOutput ${this.precompiledOutput}.ifc `;
                 }
                 break;
             case "Linker":
@@ -27,6 +27,8 @@ export default class MSVCDriver extends Driver {
         }
 
         if(this.executor == "Compiler") {
+            exec += `${this.sourceFile} `;
+
             for(let ifc of this.precompiled) {
                 exec += `/reference ${ifc}.ifc `;
             }
@@ -68,6 +70,8 @@ export default class MSVCDriver extends Driver {
             if(this.debugOutput.length > 0) {
                 exec += `/Fd"${this.debugOutput}" `;
             }
+        } else if(this.executor == "Linker") {
+            exec += `/out:${this.objectOutput}.lib `;
         }
 
         for(let lib of this.objects) {
