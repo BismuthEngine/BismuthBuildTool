@@ -287,6 +287,11 @@ export class DriverCompileWorker extends CompileWorker {
                         compileQueue.push({path: `${entryPath}.cpp`, unit: "implementation"});
                     }
 
+                    for(let obj of compileQueue) {
+
+                        mainArtifact.objects.push();
+                    }
+
                 }
 
                 // Save hash
@@ -306,10 +311,21 @@ export default class DriverBuilder extends Builder {
 
     constructor(target: Target, timeline: Timeline) {
         super(target, timeline);
-        if((target.platform == Utils.GetPlatform(platform)) && (target.platform == "Win32")) {
-            this.driver = new LLVMDriver();
+        if(target.toolkit == undefined) {
+            if((target.platform == Utils.GetPlatform(platform)) && (target.platform == "Win32")) {
+                this.driver = new LLVMDriver();
+            } else {
+                this.driver = new MSVCDriver();
+            }
         } else {
-            this.driver = new MSVCDriver();
+            switch(target.toolkit) {
+                case "Clang":
+                    this.driver = new LLVMDriver();
+                    break;
+                case "MSVC":
+                    this.driver = new MSVCDriver();
+                    break;
+            }
         }
     }
 
@@ -321,29 +337,37 @@ export default class DriverBuilder extends Builder {
         return new Promise<void>((res, rej) => {
             mkdirSync(Utils.GetOutputBase(this.CompilationTarget), {recursive: true});
 
-            let Cmd = `clang++ -std=c++20 -fmodules -fuse-ld=lld ${this.CompilationTarget.debug ? "-g -O0" : "-O3"} `;
-            let OutputFolder = resolve('./Build/');
-            
-            if(this.CompilationTarget.includeEngine) {
-                Cmd += `-fprebuilt-module-path=${resolve(this.CompilationTarget.enginePath, "./Intermediate/Modules/")} `;
+            let driver: Driver = this.driver.Branch();
+
+            driver.SetExecutor("Compiler");
+            if(this.CompilationTarget.debug) {
+                driver.EmmitDebugSymbols();
+                driver.Optimization("Debug");
+            } else {
+                driver.Optimization("Performance");
             }
-            Cmd += `-fprebuilt-module-path=${resolve(this.CompilationTarget.projectPath, "./Intermediate/Modules/")} `;
+            
+            driver.AddDefine("PLATFORM_WINDOWS");
+
+            if(this.CompilationTarget.includeEngine) {
+                driver.AddPrecompiledSearchDir(resolve(this.CompilationTarget.enginePath, "./Intermediate/Modules/"));
+            }
+            driver.AddPrecompiledSearchDir(resolve(this.CompilationTarget.projectPath, "./Intermediate/Modules/"));
 
             for(let finalIdx = 0; finalIdx < this.Timeline.Final.length; finalIdx++) {
                 let final: StagedModuleInfo = this.Timeline.Final[finalIdx];
 
-                Cmd += `${Utils.GetModuleIntermediateBase(final, this.CompilationTarget)}.lib `;
+                driver.AddObject(`${Utils.GetModuleIntermediateBase(final, this.CompilationTarget)}.lib`);
             }
 
-            let fileext = `exe`;
-            Cmd += ` -o ${resolve(Utils.GetOutputBase(this.CompilationTarget), `./${this.CompilationTarget.name}${this.CompilationTarget.configuration}_${this.CompilationTarget.platform}_${this.CompilationTarget.arch}.${fileext}`)}`;
+            driver.SetObjectOutput(resolve(Utils.GetOutputBase(this.CompilationTarget), `./${this.CompilationTarget.name}${this.CompilationTarget.configuration}_${this.CompilationTarget.platform}_${this.CompilationTarget.arch}`));
 
             if(this.CompilationTarget.verbose){
-                console.log(chalk.bold('[FINAL] ') + Cmd);
+                console.log(chalk.bold('[FINAL] ') + driver.Flush());
             }
             
             try {
-                execSync(Cmd, {"encoding": "utf8", stdio: 'pipe'});
+                execSync(driver.Flush(), {"encoding": "utf8", stdio: 'pipe'});
             } catch( stderr ) {
                 rej(stderr.stderr);
             }

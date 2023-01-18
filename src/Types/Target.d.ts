@@ -15,5 +15,7 @@ interface Target {
     configuration: string,
     debug: boolean,
     verbose: boolean,
-    name: string
+    name: string,
+    saveToFile: string,
+    toolkit: Toolkit | undefined
 }

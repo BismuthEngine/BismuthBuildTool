@@ -37,7 +37,9 @@ const target: Target = {
     debug: args.Debug,
     outputhPath: (args.Output.isUsed ? args.Output.arg : "./Build"),
     verbose: args.Verbose,
-    name: ""
+    name: "",
+    saveToFile: (args.SaveToFile.isUsed) ? args.SaveToFile.arg : "",
+    toolkit: (args.Toolkit.isUsed) ? (args.Toolkit.arg as Toolkit) : undefined
 }
 
 var project: Project;

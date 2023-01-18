@@ -33,6 +33,14 @@ interface Arguments {
         isUsed: boolean,
         arg: string
     },
+    SaveToFile: {
+        isUsed: boolean,
+        arg: string
+    },
+    Toolkit: {
+        isUsed: boolean,
+        arg: string
+    },
     NoBMT: boolean,
     Debug: boolean,
     Verbose: boolean

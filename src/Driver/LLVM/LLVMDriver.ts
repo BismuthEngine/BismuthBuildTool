@@ -14,8 +14,10 @@ export default class LLVMDriver extends Driver {
             precomp += `--precompile -o ${this.precompiledOutput}.pcm `;
         };
 
-        if(this.compile) {
+        if(this.useLinker) {
             exec += "-c ";
+        } else {
+            exec += "-fuse-ld=lld ";
         }
 
         precomp += `${this.sourceFile} `;
@@ -64,8 +66,13 @@ export default class LLVMDriver extends Driver {
         if(this.debugOutput.length > 0) {
             // exec += `/Fd"${this.debugOutput}" `;
         }
-
-        exec += `-o ${this.objectOutput}.obj `;
+        if(this.useLinker == false) {
+            exec += `-o ${this.objectOutput}.obj `;
+        } else {
+            // Executable
+            let ext = 'exe';
+            exec += `-o ${this.objectOutput}.${ext} `;
+        }
         precomp += `-o ${this.objectOutput}.pcm `;
 
         for(let lib of this.objects) {
@@ -83,9 +90,20 @@ export default class LLVMDriver extends Driver {
     Linker(): string {
         let exec: string = '';
 
-        exec += "ld.lld -r ";
-
-        exec += `-o ${this.objectOutput}.lib `;
+        switch(this.platform) {
+            case "Win32":
+                exec += "lld-link /lib ";
+                exec += `/out:${this.objectOutput}.lib `;
+                break;
+            case "Unix":
+                exec += "ld.lld -r ";
+                exec += `-o ${this.objectOutput}.lib `;
+                break;
+            case "Mach":
+                exec += "ld64.lld -r ";
+                exec += `-o ${this.objectOutput}.lib `;
+                break;
+        }
 
         for(let lib of this.objects) {
             exec += `${lib} `;
@@ -95,9 +113,7 @@ export default class LLVMDriver extends Driver {
     }
 
     Resource(): string {
-        let exec: string = '';
-
-        exec += "clang-rc ";
+        let exec: string = 'llvm-rc ';
 
         return exec;
     }

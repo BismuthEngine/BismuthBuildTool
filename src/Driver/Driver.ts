@@ -18,7 +18,7 @@ export default class Driver {
     protected includes: string[] = [];
     protected precompiledSearchDir: string[] = [];
 
-    protected compile: boolean = true;
+    protected useLinker: boolean = true;
 
     protected objectOutput: string = '';
     protected precompiledOutput: string = '';
@@ -76,8 +76,8 @@ export default class Driver {
         this.interface = true;
     }
 
-    SetCompile(compile: boolean) {
-        this.compile = compile;
+    UseLinker(use: boolean) {
+        this.useLinker = use;
     }
 
     SetObjectOutput(path: string) {

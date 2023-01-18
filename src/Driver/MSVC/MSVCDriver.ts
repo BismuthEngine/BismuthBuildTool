@@ -11,7 +11,7 @@ export default class MSVCDriver extends Driver {
             exec += `/ifcOutput ${this.precompiledOutput}.ifc `;
         }
 
-        if(this.compile == false) {
+        if(this.useLinker == false) {
             exec += "/c ";
         }
 
@@ -49,7 +49,7 @@ export default class MSVCDriver extends Driver {
             exec += `/I ${incl} `;
         }
 
-        if(this.compile) {
+        if(this.useLinker) {
             exec += `/Fe"${this.objectOutput}" `;
         } else {
             exec += `/Fo"${this.objectOutput}" `;

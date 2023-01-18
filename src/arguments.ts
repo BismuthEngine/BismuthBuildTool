@@ -37,6 +37,14 @@ export default function (args: string[]): Arguments {
         Configuration: {
             isUsed: false,
             arg: ""
+        },
+        SaveToFile: {
+            isUsed: false,
+            arg: ""
+        },
+        Toolkit: {
+            isUsed: false,
+            arg: ""
         }
     };
 
@@ -66,6 +74,12 @@ export default function (args: string[]): Arguments {
                 argument = args[i];
                 result.Configuration.arg = argument.charAt(0).toUpperCase() + argument.slice(1);
                 break;
+            case "--toolkit":
+                result.Toolkit.isUsed = true;
+                i++;
+                argument = args[i];
+                result.Toolkit.arg = argument;
+                break;
             case "--platform":
                 result.platform.isUsed = true;
                 i++;
@@ -80,6 +94,12 @@ export default function (args: string[]): Arguments {
                 break;
             case "--no-bmt":
                 result.NoBMT = true;
+                break;
+            case "--emmit":
+                result.SaveToFile.isUsed = true;
+                i++;
+                argument = args[i];
+                result.SaveToFile.arg = argument;
                 break;
             case "--vsproj":
                 result.VisualStudioProject.isUsed = true;
