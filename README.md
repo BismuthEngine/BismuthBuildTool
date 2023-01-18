@@ -23,7 +23,13 @@ bismuth-build-tool
 
     --platform <Platform> - Specifies target platform
     --arch <Architecture> - Specifies target architecture
+    --toolkit <MSVC|Clang> - Forces toolkit to use for compilation
 
     --debug - Disable optimisations and produce .pdb files
-    --editor - uses Editor.rules.js files, instead of just .rules.js
+    --config <Configuration> Chooses .rules.js file with appropriate suffix
+    
+    --no-bmt - Disables Module Tool for this compilation
+    
+    -emmit <Path> - Emmits all executed commands into selected path
+    -v - Shows all commands called (Verbose)
 ```
