@@ -8,6 +8,9 @@ import Module from "../Classes/Module.js";
 import { StagedModuleInfo, StagedSubModuleInfo, Timeline } from "../Types/Timeline.js";
 import Utils from "../utils.js";
 import Driver from "../Driver/Driver.js";
+import { platform } from "process";
+import LLVMDriver from "../Driver/LLVM/LLVMDriver.js";
+import MSVCDriver from "../Driver/MSVC/MSVCDriver.js";
 
 type PartitionData = {precompiled: string, objects: string[]};
 
@@ -190,10 +193,16 @@ export class DriverCompileWorker extends CompileWorker {
     }
 
     DefinePlatforms(): string {
-        return " /D PLATFORM_WINDOWS "
+        return "PLATFORM_WINDOWS"
     }
 
     CompileSubmodules(driver: Driver): PartitionsMap {
+        // New Module's compiler
+        let compiler = driver.Branch();
+
+        // New Module's Linker
+        let linker = driver.Branch();
+
         return new PartitionsMap(this.Target, this.root);
     } 
 
@@ -204,7 +213,7 @@ export class DriverCompileWorker extends CompileWorker {
             });
         else
             return new Promise<void>(async (res, rej) => {
-                /*
+                
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), `./Intermediate/Modules/${this.root.Name}_temp`), {recursive: true});
 
                 let driver = this.driver.Branch();
@@ -244,17 +253,21 @@ export class DriverCompileWorker extends CompileWorker {
                     }
                 }
                 
-                // [0] is for PCM
-                // [1] is for OBJ
                 let PartitionsArtifacts: PartitionsMap;
     
                 // Compile partitions, if bismuth module is c++20 module
+                // Then compile main module
                 if(this.IsModule()) {
                     try {
                         PartitionsArtifacts = this.CompileSubmodules(driver.Branch());
                     } catch(err) {
                         rej(err);
                     }
+                    
+                    let mainArtifact: PartitionData = {
+                        precompiled: "",
+                        objects: []
+                    };
 
                     for(let part of PartitionsArtifacts!.GetAllPartitionArtifact()) {
                         driver.AddPrecompiled(part.precompiled);
@@ -274,69 +287,6 @@ export class DriverCompileWorker extends CompileWorker {
                         compileQueue.push({path: `${entryPath}.cpp`, unit: "implementation"});
                     }
 
-                    for(let file of compileQueue) {
-                        let objPath = `${resolve(Utils.GetModuleTempBase(this.root, this.Target), Utils.GetPathFilename(file.path))}_${file.unit}`;
-                        let ifcPath = `${Utils.GetModuleIntermediateBase(this.root, this.Target)}`;
-                        let curLibCmd = libCmd + ` ${file.path} /ifcOutput ${ifcPath}.ifc /Fo"${objPath}.obj" `;
-
-                        try {
-                            if(this.Target.verbose){
-                                console.log(chalk.bold('[LIB] ') + curLibCmd);
-                            }
-                            execSync(curLibCmd, {"encoding": "utf8", stdio: 'pipe'});
-
-                            PartitionsArtifacts[1] += ` ${objPath}.obj`;
-                            PartitionsArtifacts[0] += ` /reference ${objPath}.ifc`;
-                        } catch( stderr ) {
-                            rej(stderr.stderr);
-                        }
-                    }
-                }
-
-                // Compile object files into temp directory
-                if(!this.IsModule()) {
-                    let Files = this.GetRootCompilationFiles();
-                    // console.log(chalk.magenta(Files));
-
-                    Files.forEach(file => {
-                        let objPath = `${resolve(Utils.GetModuleTempBase(this.root, this.Target), Utils.GetPathFilename(file))}.obj`;
-                        PartitionsArtifacts[1] += ` ${objPath} `;
-                        let curLibCmd = libCmd + ` ${file} /Fo"${objPath}" `
-
-                        if(this.Target.verbose){
-                            console.log(chalk.bold('[LIB] ') + curLibCmd);
-                        }
-                    
-                        try {
-                            execSync(curLibCmd, {"encoding": "utf8", stdio: 'pipe'});
-                        } catch( stderr ) {
-                            rej(stderr.stderr);
-                        }
-                    })
-                } else {
-                    
-                    // Module main entry consists of Interface Unit & Implementation Unit(optional)
-                    // We find those using .module.js's ModuleEntry files (module name if entry is null)
-                    // We assemble them into .obj & concat artifacts
-                }
-
-                // Link against dependencies 
-                const libName = `${Utils.GetModuleIntermediateBase(this.root, this.Target)}`;
-
-                let linkerDriver: Driver = driver.Branch();
-                
-                lldCmd += ` ` +
-                          ` ${PartitionsArtifacts[1]}` +
-                          ` /out:${libName}.lib`;
-                
-                if(this.Target.verbose){
-                    console.log(chalk.bold('[LINKER] ') + lldCmd);
-                }
-                
-                try {
-                    execSync(lldCmd, {"encoding": "utf8", stdio: 'pipe'});
-                } catch( stderr ) {
-                    rej(stderr.stderr);
                 }
 
                 // Save hash
@@ -347,7 +297,6 @@ export class DriverCompileWorker extends CompileWorker {
 
                 // Return
                 res();
-                */
             })
         }
 }
@@ -355,9 +304,13 @@ export class DriverCompileWorker extends CompileWorker {
 export default class DriverBuilder extends Builder {
     driver: Driver;
 
-    constructor(target: Target, timeline: Timeline, driver: Driver) {
+    constructor(target: Target, timeline: Timeline) {
         super(target, timeline);
-        this.driver = driver;
+        if((target.platform == Utils.GetPlatform(platform)) && (target.platform == "Win32")) {
+            this.driver = new LLVMDriver();
+        } else {
+            this.driver = new MSVCDriver();
+        }
     }
 
     CreateCompileWorker(): CompileWorker {
