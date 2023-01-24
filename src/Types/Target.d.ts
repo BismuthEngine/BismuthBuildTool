@@ -1,6 +1,6 @@
-type Platform = "Win32" | "Mach" | "Unix";
+type Platform = "Win32" | "Mach" | "Unix" | "WebASM";
 type Arch = "x86_32" | "x86_64" | "ARM_32" | "ARM_64";
-type Toolkit = "Clang" | "MSVC";
+type Toolkit = "clang" | "msvc" | "emscripten";
 
 interface Target {
     platform: Platform,

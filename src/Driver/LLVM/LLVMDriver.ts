@@ -1,89 +1,89 @@
-import Driver from "../Driver"
+import Driver from "../Driver.js"
 
 export default class LLVMDriver extends Driver {
 
     Compiler(): string {
-        let exec: string = '';
+        let comp: string = '';
         let precomp: string = '';
 
-        precomp = exec = "clang++ -Wall -std=c++20 ";
+        precomp = comp = `clang++ -Wall -std=${this.standard} `;
         
         if(this.interface){
-            exec += `-fmodules `;
+            comp += `-fmodules `;
             precomp += `-fmodules `;
             precomp += `--precompile -o ${this.precompiledOutput}.pcm `;
         };
 
         if(this.useLinker) {
-            exec += "-c ";
+            comp += "-c ";
         } else {
-            exec += "-fuse-ld=lld ";
+            comp += "-fuse-ld=lld ";
         }
 
         precomp += `${this.sourceFile} `;
-        exec += `${this.sourceFile} `;
+        comp += `${this.sourceFile} `;
 
         for(let pcm of this.precompiled) {
             precomp += `-fmodule-file=${pcm}.pcm `; 
-            exec += `-fmodule-file=${pcm}.pcm `;
+            comp += `-fmodule-file=${pcm}.pcm `;
         }
 
         for(let def of this.defines) {
             precomp += `-D${def} `;
-            exec += `-D${def} `;
+            comp += `-D${def} `;
         }
     
         if(this.emmitDebugSymbols) {
             precomp += `-g `;
-            exec += `-g `;
+            comp += `-g `;
         }
     
         switch(this.optimizationLevel) {
             case "Debug":
                 precomp += "-O0 "; 
-                exec += "-O0 ";
+                comp += "-O0 ";
                 break;
             case "Performance":
                 precomp += "-Ofast "; 
-                exec += "-Ofast ";
+                comp += "-Ofast ";
                 break;
             case "Space":
                 precomp += "-Os "; 
-                exec += "-Os ";
+                comp += "-Os ";
                 break;
         }
     
         for(let dir of this.precompiledSearchDir) {
             precomp += `-fprebuild-module-path=${dir} `; 
-            exec += `-fprebuild-module-path=${dir} `;
+            comp += `-fprebuild-module-path=${dir} `;
         }
     
         for(let incl of this.includes) {
             precomp += `-I${incl} `; 
-            exec += `-I${incl} `;
+            comp += `-I${incl} `;
         }
     
         if(this.debugOutput.length > 0) {
             // exec += `/Fd"${this.debugOutput}" `;
         }
         if(this.useLinker == false) {
-            exec += `-o ${this.objectOutput}.obj `;
+            comp += `-o ${this.objectOutput}.obj `;
         } else {
             // Executable
             let ext = 'exe';
-            exec += `-o ${this.objectOutput}.${ext} `;
+            comp += `-o ${this.objectOutput}.${ext} `;
         }
         precomp += `-o ${this.objectOutput}.pcm `;
 
         for(let lib of this.objects) {
             precomp += `${lib} `;
-            exec += `${lib} `;
+            comp += `${lib} `;
         }
 
         if(this.interface) {
-            return `${precomp} && ${exec}`;
+            return `${precomp} && ${comp}`;
         } else {
-            return exec;
+            return comp;
         }
     }
 
@@ -103,6 +103,10 @@ export default class LLVMDriver extends Driver {
                 exec += "ld64.lld -r ";
                 exec += `-o ${this.objectOutput}.lib `;
                 break;
+            case "WebASM":
+                exec += "wasm-ld ";
+                exec += `-o ${this.objectOutput}.wasm `;
+                break;
         }
 
         for(let lib of this.objects) {
@@ -113,7 +117,7 @@ export default class LLVMDriver extends Driver {
     }
 
     Resource(): string {
-        let exec: string = 'llvm-rc ';
+        let exec: string = `llvm-rc /FO ${this.objectOutput} ${this.sourceFile}`;
 
         return exec;
     }

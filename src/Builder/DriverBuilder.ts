@@ -11,6 +11,7 @@ import Driver from "../Driver/Driver.js";
 import { platform } from "process";
 import LLVMDriver from "../Driver/LLVM/LLVMDriver.js";
 import MSVCDriver from "../Driver/MSVC/MSVCDriver.js";
+import EmscriptenDriver from "../Driver/Emscripten/EmscriptenDriver.js";
 
 type PartitionData = {precompiled: string, objects: string[]};
 
@@ -197,13 +198,64 @@ export class DriverCompileWorker extends CompileWorker {
     }
 
     CompileSubmodules(driver: Driver): PartitionsMap {
-        // New Module's compiler
-        let compiler = driver.Branch();
+        let map: PartitionsMap = new PartitionsMap(this.Target, this.root);
 
-        // New Module's Linker
-        let linker = driver.Branch();
+        for(let stage of this.root.Parts.Stages) {
+            for(let part of stage.Modules) {
+                let compiler = driver.Branch();
+                compiler.UseLinker(false);
 
-        return new PartitionsMap(this.Target, this.root);
+                // Solve dependencies
+                for(let dep of part.Imports) { 
+                    let foundDependency: PartitionData | undefined = map.GetPartitionArtifact(dep);
+                    if(foundDependency != undefined) {
+                        compiler.AddPrecompiled(foundDependency.precompiled);
+                        for(let obj of foundDependency.objects) {
+                            compiler.AddObject(obj);
+                        }
+                    }
+                }
+
+                let outputInterface = resolve(Utils.GetModuleTempBase(this.root, this.Target), `./${part.Name}`);
+
+                compiler.SetSource(part.Interface);
+
+                compiler.SetObjectOutput(`${outputInterface}_interface.obj`);
+                compiler.SetPrecompiledOutput(outputInterface);
+                compiler.Interface(true);
+
+                map.AddModule(part)
+
+                try {
+                    if(this.Target.verbose) {
+                        console.log(`[SUB-PCM/OBJ Interface] ${compiler.Flush()}`);
+                    }
+                    execSync(compiler.Flush(), {"encoding": "utf8", stdio: 'pipe'});
+                } catch( stderr ) {
+                    throw stderr.stderr;
+                }
+
+                if(part.Implementation.length > 0) {
+                    let outputImplementation = resolve(Utils.GetModuleTempBase(this.root, this.Target), `./${part.Name}_implementation`);
+
+                    compiler.SetSource(part.Implementation);
+
+                    compiler.SetObjectOutput(`${outputImplementation}.obj`);
+                    compiler.AddPrecompiled(outputInterface);
+                    compiler.Interface(false);
+
+                    try {
+                        if(this.Target.verbose) {
+                            console.log(`[SUB-PCM/OBJ Implementation] ${compiler.Flush()}`);
+                        }
+                        execSync(compiler.Flush(), {"encoding": "utf8", stdio: 'pipe'});
+                    } catch( stderr ) {
+                        throw stderr.stderr;
+                    }
+                }
+            }
+        }
+        return map;
     } 
 
     async Compile(): Promise<void> {
@@ -288,7 +340,14 @@ export class DriverCompileWorker extends CompileWorker {
                     }
 
                     for(let obj of compileQueue) {
-
+                        let mainDriver = driver.Branch();
+                        mainDriver.SetSource(obj.path);
+                        if( obj.unit == "interface") {
+                            mainDriver.Interface(true);
+                            //mainDriver.SetObjectOutput();
+                        } else {
+                            mainDriver.Interface(false);
+                        }
                         mainArtifact.objects.push();
                     }
 
@@ -309,24 +368,9 @@ export class DriverCompileWorker extends CompileWorker {
 export default class DriverBuilder extends Builder {
     driver: Driver;
 
-    constructor(target: Target, timeline: Timeline) {
+    constructor(target: Target, timeline: Timeline, driver: Driver) {
         super(target, timeline);
-        if(target.toolkit == undefined) {
-            if((target.platform == Utils.GetPlatform(platform)) && (target.platform == "Win32")) {
-                this.driver = new LLVMDriver();
-            } else {
-                this.driver = new MSVCDriver();
-            }
-        } else {
-            switch(target.toolkit) {
-                case "Clang":
-                    this.driver = new LLVMDriver();
-                    break;
-                case "MSVC":
-                    this.driver = new MSVCDriver();
-                    break;
-            }
-        }
+        this.driver = driver;
     }
 
     CreateCompileWorker(): CompileWorker {

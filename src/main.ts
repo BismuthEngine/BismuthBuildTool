@@ -95,9 +95,11 @@ try {
 
 const CompilationToolkit: Toolkit = Utils.GetToolkit(target);
 
-if(CompilationToolkit == "Clang") {
+if(CompilationToolkit == "clang") {
     CheckClangInstallation();
-} else if(CompilationToolkit == "MSVC"){
+} else if(CompilationToolkit == "msvc"){
+    CheckMSVCInstallation();
+} else if(CompilationToolkit == "emscripten"){
     CheckMSVCInstallation();
 }
 

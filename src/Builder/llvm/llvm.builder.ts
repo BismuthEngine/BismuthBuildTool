@@ -169,6 +169,9 @@ export class LLVMCompileWorker extends CompileWorker {
             case "Win32":
                 return " -DPLATFORM_WINDOWS "
                 break;
+            case "WebASM":
+                return " -DPLATFORM_WEBASM "
+                break;
         }
     }
 
@@ -184,6 +187,8 @@ export class LLVMCompileWorker extends CompileWorker {
                 let Cmd = `${this.CompBase} ${this.Target.debug ? "-g -O0 " : "-O3 "} -Wall `;
 
                 Cmd += this.DefinePlatforms();
+                
+                if(this.Target.debug) Cmd += " -DDEBUG ";
 
                 let lldCmd = this.LDBase + LLVMLinker.Relocatable(this.Target);
 

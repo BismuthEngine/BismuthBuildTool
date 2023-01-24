@@ -44,7 +44,7 @@ export default class Utils {
 
     static GetToolkit(target: Target): Toolkit {
         // TODO: MSVC support
-        return "Clang";
+        return "clang";
     }
 
     static ReadJSON(path: string): any {

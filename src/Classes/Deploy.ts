@@ -22,6 +22,8 @@ export default class Deploy {
 
     // If true, passed to Builder as compilation target
     Compiled: boolean = false
+    // If true, Produces DLL. Inserted into executable as static library otherwise.
+    DLL: boolean = false
 
     // Seeks, downloads, installs module and returns deployment information
     async Deploy(fetch: DeployAPI): Promise<any> {

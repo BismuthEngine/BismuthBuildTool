@@ -1,13 +1,20 @@
 
 type OptimizationLevel = "Debug" | "Performance" | "Space";
 type Executor = "Linker" | "Compiler" | "Resource";
+type Standard = "c++11" | "c++17" | "c++20" | "c++23" | "c++latest" | "c99" | "c17"
 
 export default class Driver {
+    // Mode
     protected executor: Executor = 'Compiler';
 
+    // Debug
     protected optimizationLevel: OptimizationLevel = "Performance";
     protected emmitDebugSymbols: boolean = false;
 
+    // Language
+    protected standard: Standard = "c++20";
+
+    // C++20
     protected interface: boolean = false;
 
     // Inputs
@@ -18,19 +25,26 @@ export default class Driver {
     protected includes: string[] = [];
     protected precompiledSearchDir: string[] = [];
 
+    // Compiler
     protected useLinker: boolean = true;
 
+    // Output
     protected objectOutput: string = '';
     protected precompiledOutput: string = '';
     protected debugOutput: string = '';
 
+    // Platform
     protected arch: Arch = "x86_64";
     protected platform: Platform = "Win32";
 
-    Branch = (): Driver => {return {...this};}
+    Branch = (): Driver => {return Object.assign(Object.create(Object.getPrototypeOf(this)), this);}
 
     SetExecutor(executor: Executor) {
         this.executor = executor;
+    }
+
+    SetStandard(std: Standard) {
+        this.standard = std;
     }
     
     SetSource(source: string) {
@@ -72,8 +86,8 @@ export default class Driver {
         this.optimizationLevel = level;
     }
 
-    Interface() {
-        this.interface = true;
+    Interface(inter: boolean) {
+        this.interface = inter;
     }
 
     UseLinker(use: boolean) {
