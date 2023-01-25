@@ -1,3 +1,4 @@
+import chalk from "chalk";
 
 type OptimizationLevel = "Debug" | "Performance" | "Space";
 type Executor = "Linker" | "Compiler" | "Resource";
@@ -37,7 +38,16 @@ export default class Driver {
     protected arch: Arch = "x86_64";
     protected platform: Platform = "Win32";
 
-    Branch = (): Driver => {return Object.assign(Object.create(Object.getPrototypeOf(this)), this);}
+    static Branch = (example: Driver): Driver => {
+        let drv: Driver = Object.assign(Object.create(Object.getPrototypeOf(example)), example);
+
+        drv.objects = [...example.objects];
+        drv.precompiled = [...example.precompiled];
+        drv.defines = [...example.defines];
+        drv.includes = [...example.includes];
+
+        return drv;
+    }
 
     SetExecutor(executor: Executor) {
         this.executor = executor;
@@ -62,6 +72,7 @@ export default class Driver {
     AddPrecompiledSearchDir(path: string) {
         this.precompiledSearchDir.push(path);
     }
+
     AddInclude(path: string) {
         this.includes.push(path);
     }
@@ -70,12 +81,30 @@ export default class Driver {
         this.precompiled.push(path);
     }
 
+    WipePrecompiled() {
+        this.precompiled = [];
+    }
+
     AddObject(path: string) {
         this.objects.push(path);
     }
 
+    WipeObjects() {
+        this.objects = [];
+    }
+
     AddDefine(define: string) {
         this.defines.push(define);
+    }
+
+    WipeDefines() {
+        this.defines = [];
+    }
+
+    Wipe() {
+        this.WipeObjects();
+        this.WipePrecompiled();
+        this.WipeDefines();
     }
 
     EmmitDebugSymbols() {

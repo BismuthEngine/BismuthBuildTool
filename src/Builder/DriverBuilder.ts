@@ -86,11 +86,11 @@ export class DriverCompileWorker extends CompileWorker {
     entry: string;
     linkerRequests: string[] = [];
     Modules: StagedModuleInfo[] = [];
-    driver: Driver;
+    masterDriver: Driver;
 
     constructor(target: Target, driver: Driver) {
         super(target);
-        this.driver = driver;
+        this.masterDriver = driver;
     }
 
     SetRoot(module: StagedModuleInfo) {
@@ -202,7 +202,7 @@ export class DriverCompileWorker extends CompileWorker {
 
         for(let stage of this.root.Parts.Stages) {
             for(let part of stage.Modules) {
-                let compiler = driver.Branch();
+                let compiler = Driver.Branch(driver);
                 compiler.UseLinker(false);
 
                 // Solve dependencies
@@ -260,15 +260,15 @@ export class DriverCompileWorker extends CompileWorker {
 
     async Compile(): Promise<void> {
         if(this.root == undefined)
-            return new Promise<void>(async (res, rej) => {
+            return new Promise<void>((res, rej) => {
                 rej("Root was not set for the compiler");
             });
         else
-            return new Promise<void>(async (res, rej) => {
+            return new Promise<void>((res, rej) => {
                 
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), `./Intermediate/Modules/${this.root.Name}_temp`), {recursive: true});
 
-                let driver = this.driver.Branch();
+                let driver = Driver.Branch(this.masterDriver);
 
                 driver.SetExecutor("Compiler")
 
@@ -311,7 +311,7 @@ export class DriverCompileWorker extends CompileWorker {
                 // Then compile main module
                 if(this.IsModule()) {
                     try {
-                        PartitionsArtifacts = this.CompileSubmodules(driver.Branch());
+                        PartitionsArtifacts = this.CompileSubmodules(Driver.Branch(driver));
                     } catch(err) {
                         rej(err);
                     }
@@ -322,12 +322,14 @@ export class DriverCompileWorker extends CompileWorker {
                     };
 
                     for(let part of PartitionsArtifacts!.GetAllPartitionArtifact()) {
+                        console.log(chalk.redBright(part.precompiled));
                         driver.AddPrecompiled(part.precompiled);
                         for(let obj of part.objects) {
                             driver.AddObject(obj);
                         }
                     }
 
+                    // Prepare for PCM/OBJ pass
                     let entryName = (<Module>(this.root.Module)).ModuleEntry ? (<Module>(this.root.Module)).ModuleEntry : './' + (<Module>(this.root.Module)).Name;
 
                     let entryPath = resolve(dirname(this.root.Path), entryName);
@@ -339,18 +341,60 @@ export class DriverCompileWorker extends CompileWorker {
                         compileQueue.push({path: `${entryPath}.cpp`, unit: "implementation"});
                     }
 
+                    // PCM/OBJ pass
                     for(let obj of compileQueue) {
-                        let mainDriver = driver.Branch();
+                        let mainDriver = Driver.Branch(driver);
                         mainDriver.SetSource(obj.path);
+                        mainDriver.UseLinker(false);
+                        let objPath = resolve(Utils.GetModuleTempBase(this.root, this.Target), `./${this.root.Name}`)
                         if( obj.unit == "interface") {
                             mainDriver.Interface(true);
-                            //mainDriver.SetObjectOutput();
+                            mainDriver.SetObjectOutput(`${objPath}_interface.obj`);
+                            mainDriver.SetPrecompiledOutput(`${objPath}`);
+
+                            try {
+                                if(this.Target.verbose) {
+                                    console.log(`[PCM/OBJ Interface] ${mainDriver.Flush()}`);
+                                }
+                                execSync(mainDriver.Flush(), {"encoding": "utf8", stdio: 'pipe'});
+                            } catch( stderr ) {
+                                rej(stderr.stderr);
+                            }
+
+                            mainArtifact.precompiled = `${objPath}`;
+                            mainArtifact.objects.push(`${objPath}_interface.obj`);
                         } else {
                             mainDriver.Interface(false);
+                            mainDriver.SetObjectOutput(`${objPath}_implementation.obj`);
+
+                            try {
+                                if(this.Target.verbose) {
+                                    console.log(`[PCM/OBJ Implementation] ${mainDriver.Flush()}`);
+                                }
+                                execSync(mainDriver.Flush(), {"encoding": "utf8", stdio: 'pipe'});
+                            } catch( stderr ) {
+                                rej(stderr.stderr);
+                            }
+
+                            mainArtifact.objects.push(`${objPath}_implementation.obj`);
                         }
-                        mainArtifact.objects.push();
                     }
 
+                }
+
+                // LINKER pass
+                let linkDriver = Driver.Branch(driver);
+                linkDriver.SetExecutor("Linker");
+
+                linkDriver.SetObjectOutput(Utils.GetModuleIntermediateBase(this.root, this.Target));
+
+                try {
+                    if(this.Target.verbose) {
+                        console.log(`[LINKER] ${linkDriver.Flush()}`);
+                    }
+                    execSync(linkDriver.Flush(), {"encoding": "utf8", stdio: 'pipe'});
+                } catch( stderr ) {
+                    rej(stderr.stderr);
                 }
 
                 // Save hash
@@ -381,7 +425,7 @@ export default class DriverBuilder extends Builder {
         return new Promise<void>((res, rej) => {
             mkdirSync(Utils.GetOutputBase(this.CompilationTarget), {recursive: true});
 
-            let driver: Driver = this.driver.Branch();
+            let driver: Driver = Driver.Branch(this.driver);
 
             driver.SetExecutor("Compiler");
             if(this.CompilationTarget.debug) {

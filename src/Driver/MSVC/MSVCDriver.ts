@@ -29,7 +29,7 @@ export default class MSVCDriver extends Driver {
     }
 
     Compiler(): string {
-        let exec: string = `cl.exe /nologo /W3 /WX- /EHsc /std:${this.standard} `;
+        let exec: string = `cl.exe /W3 /WX- /EHsc /std:${this.standard} `;
         
         if(this.interface){
             exec += `/TP /interface `;
@@ -94,7 +94,7 @@ export default class MSVCDriver extends Driver {
     }
 
     Linker(): string {
-        let exec: string = "link.exe /nologo /lib ";
+        let exec: string = "link.exe /lib ";
 
         exec += `/out:${this.objectOutput}.lib `;
 
