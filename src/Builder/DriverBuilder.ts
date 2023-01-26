@@ -213,6 +213,8 @@ export class DriverCompileWorker extends CompileWorker {
                         for(let obj of foundDependency.objects) {
                             compiler.AddObject(obj);
                         }
+                    } else {
+                        throw `Was not able to find dependency: ${dep}`
                     }
                 }
 
@@ -227,10 +229,12 @@ export class DriverCompileWorker extends CompileWorker {
                 map.AddModule(part)
 
                 try {
-                    if(this.Target.verbose) {
-                        console.log(`[SUB-PCM/OBJ Interface] ${compiler.Flush()}`);
+                    for(let cmd of compiler.Flush()){
+                        if(this.Target.verbose) {
+                            console.log(`[SUB-PCM/OBJ Interface] ${cmd}`);
+                        }
+                        execSync(cmd, {"encoding": "utf8", stdio: 'pipe'});
                     }
-                    execSync(compiler.Flush(), {"encoding": "utf8", stdio: 'pipe'});
                 } catch( stderr ) {
                     throw stderr.stderr;
                 }
@@ -245,10 +249,12 @@ export class DriverCompileWorker extends CompileWorker {
                     compiler.Interface(false);
 
                     try {
-                        if(this.Target.verbose) {
-                            console.log(`[SUB-PCM/OBJ Implementation] ${compiler.Flush()}`);
+                        for(let cmd of compiler.Flush()){
+                            if(this.Target.verbose) {
+                                console.log(`[SUB-PCM/OBJ Implementation] ${cmd}`);
+                            }
+                            execSync(cmd, {"encoding": "utf8", stdio: 'pipe'});
                         }
-                        execSync(compiler.Flush(), {"encoding": "utf8", stdio: 'pipe'});
                     } catch( stderr ) {
                         throw stderr.stderr;
                     }
@@ -269,8 +275,8 @@ export class DriverCompileWorker extends CompileWorker {
                 mkdirSync(resolve(Utils.GetRootFolderForModule(this.root, this.Target), `./Intermediate/Modules/${this.root.Name}_temp`), {recursive: true});
 
                 let driver = Driver.Branch(this.masterDriver);
-
-                driver.SetExecutor("Compiler")
+                driver.Wipe();
+                driver.SetExecutor("Compiler");
 
                 if(this.Target.debug) { 
                     driver.EmmitDebugSymbols();
@@ -306,6 +312,11 @@ export class DriverCompileWorker extends CompileWorker {
                 }
                 
                 let PartitionsArtifacts: PartitionsMap;
+
+                let mainArtifact: PartitionData = {
+                    precompiled: "",
+                    objects: []
+                };
     
                 // Compile partitions, if bismuth module is c++20 module
                 // Then compile main module
@@ -315,11 +326,6 @@ export class DriverCompileWorker extends CompileWorker {
                     } catch(err) {
                         rej(err);
                     }
-                    
-                    let mainArtifact: PartitionData = {
-                        precompiled: "",
-                        objects: []
-                    };
 
                     for(let part of PartitionsArtifacts!.GetAllPartitionArtifact()) {
                         console.log(chalk.redBright(part.precompiled));
@@ -350,13 +356,15 @@ export class DriverCompileWorker extends CompileWorker {
                         if( obj.unit == "interface") {
                             mainDriver.Interface(true);
                             mainDriver.SetObjectOutput(`${objPath}_interface.obj`);
-                            mainDriver.SetPrecompiledOutput(`${objPath}`);
+                            mainDriver.SetPrecompiledOutput(`${Utils.GetModuleIntermediateBase(this.root, this.Target)}`);
 
                             try {
-                                if(this.Target.verbose) {
-                                    console.log(`[PCM/OBJ Interface] ${mainDriver.Flush()}`);
+                                for(let cmd of mainDriver.Flush()){
+                                    if(this.Target.verbose) {
+                                        console.log(`[PCM/OBJ Interface] ${cmd}`);
+                                    }
+                                    execSync(cmd, {"encoding": "utf8", stdio: 'pipe'});
                                 }
-                                execSync(mainDriver.Flush(), {"encoding": "utf8", stdio: 'pipe'});
                             } catch( stderr ) {
                                 rej(stderr.stderr);
                             }
@@ -368,10 +376,12 @@ export class DriverCompileWorker extends CompileWorker {
                             mainDriver.SetObjectOutput(`${objPath}_implementation.obj`);
 
                             try {
-                                if(this.Target.verbose) {
-                                    console.log(`[PCM/OBJ Implementation] ${mainDriver.Flush()}`);
+                                for(let cmd of mainDriver.Flush()){
+                                    if(this.Target.verbose) {
+                                        console.log(`[PCM/OBJ Implementation] ${cmd}`);
+                                    }
+                                    execSync(cmd, {"encoding": "utf8", stdio: 'pipe'});
                                 }
-                                execSync(mainDriver.Flush(), {"encoding": "utf8", stdio: 'pipe'});
                             } catch( stderr ) {
                                 rej(stderr.stderr);
                             }
@@ -379,7 +389,31 @@ export class DriverCompileWorker extends CompileWorker {
                             mainArtifact.objects.push(`${objPath}_implementation.obj`);
                         }
                     }
+                } else {
+                    let mainDriver = Driver.Branch(driver);
+                    mainDriver.Interface(false);
+                    mainDriver.UseLinker(false);
 
+                    let Files = this.GetRootCompilationFiles();
+
+                    for(let file of Files) {
+                        let objPath = `${resolve(Utils.GetModuleTempBase(this.root, this.Target), Utils.GetPathFilename(file))}.obj`;
+                        mainDriver.SetSource(file);
+                        mainDriver.SetObjectOutput(objPath);
+
+                        try {
+                            for(let cmd of mainDriver.Flush()){
+                                if(this.Target.verbose) {
+                                    console.log(`[OBJ Implementation] ${cmd}`);
+                                }
+                                execSync(cmd, {"encoding": "utf8", stdio: 'pipe'});
+                            }
+                        } catch( stderr ) {
+                            rej(stderr.stderr);
+                        }
+
+                        mainArtifact.objects.push(objPath);
+                    }
                 }
 
                 // LINKER pass
@@ -388,11 +422,17 @@ export class DriverCompileWorker extends CompileWorker {
 
                 linkDriver.SetObjectOutput(Utils.GetModuleIntermediateBase(this.root, this.Target));
 
+                for(let obj of mainArtifact.objects) {
+                    linkDriver.AddObject(obj);
+                }
+
                 try {
-                    if(this.Target.verbose) {
-                        console.log(`[LINKER] ${linkDriver.Flush()}`);
+                    for(let cmd of linkDriver.Flush()){
+                        if(this.Target.verbose) {
+                            console.log(`[LINKER] ${cmd}`);
+                        }
+                        execSync(cmd, {"encoding": "utf8", stdio: 'pipe'});
                     }
-                    execSync(linkDriver.Flush(), {"encoding": "utf8", stdio: 'pipe'});
                 } catch( stderr ) {
                     rej(stderr.stderr);
                 }
@@ -449,13 +489,14 @@ export default class DriverBuilder extends Builder {
             }
 
             driver.SetObjectOutput(resolve(Utils.GetOutputBase(this.CompilationTarget), `./${this.CompilationTarget.name}${this.CompilationTarget.configuration}_${this.CompilationTarget.platform}_${this.CompilationTarget.arch}`));
-
-            if(this.CompilationTarget.verbose){
-                console.log(chalk.bold('[FINAL] ') + driver.Flush());
-            }
             
             try {
-                execSync(driver.Flush(), {"encoding": "utf8", stdio: 'pipe'});
+                for(let cmd of driver.Flush()){
+                            if(this.CompilationTarget.verbose) {
+                                console.log(`[FINAL] ${cmd}`);
+                            }
+                            execSync(cmd, {"encoding": "utf8", stdio: 'pipe'});
+                        }
             } catch( stderr ) {
                 rej(stderr.stderr);
             }

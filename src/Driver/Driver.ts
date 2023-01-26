@@ -41,10 +41,23 @@ export default class Driver {
     static Branch = (example: Driver): Driver => {
         let drv: Driver = Object.assign(Object.create(Object.getPrototypeOf(example)), example);
 
-        drv.objects = [...example.objects];
-        drv.precompiled = [...example.precompiled];
-        drv.defines = [...example.defines];
-        drv.includes = [...example.includes];
+        console.log(example);
+
+        function copyArray(arr: any[]): any[] {
+            let ret: any[] = [];
+            for(let obj of arr) {
+                ret.push(obj);
+            }
+            return ret;
+        }
+
+        drv.objects = copyArray(example.objects);
+        drv.precompiled = copyArray(example.precompiled);
+        drv.defines = copyArray(example.defines);
+        drv.includes = copyArray(example.includes);
+        drv.precompiledSearchDir = copyArray(example.precompiledSearchDir);
+
+        console.log(drv);
 
         return drv;
     }
@@ -70,15 +83,18 @@ export default class Driver {
     }
 
     AddPrecompiledSearchDir(path: string) {
-        this.precompiledSearchDir.push(path);
+        if(!this.precompiledSearchDir.includes(path))
+            this.precompiledSearchDir.push(path);
     }
 
     AddInclude(path: string) {
-        this.includes.push(path);
+        if(!this.includes.includes(path))
+            this.includes.push(path);
     }
 
     AddPrecompiled(path: string) {
-        this.precompiled.push(path);
+        if(!this.precompiled.includes(path))
+            this.precompiled.push(path);
     }
 
     WipePrecompiled() {
@@ -86,7 +102,8 @@ export default class Driver {
     }
 
     AddObject(path: string) {
-        this.objects.push(path);
+        if(!this.objects.includes(path))
+            this.objects.push(path);
     }
 
     WipeObjects() {
@@ -94,7 +111,8 @@ export default class Driver {
     }
 
     AddDefine(define: string) {
-        this.defines.push(define);
+        if(!this.defines.includes(define))
+            this.defines.push(define);
     }
 
     WipeDefines() {
@@ -135,7 +153,7 @@ export default class Driver {
         this.precompiledOutput = path;
     }
 
-    Flush(): string {
-        return '';
+    Flush(): string[] {
+        return [];
     }
 }

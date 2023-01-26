@@ -2,7 +2,7 @@ import Driver from "../Driver.js"
 
 export default class LLVMDriver extends Driver {
 
-    Compiler(): string {
+    Compiler(): string[] {
         let comp: string = '';
         let precomp: string = '';
 
@@ -15,9 +15,9 @@ export default class LLVMDriver extends Driver {
         };
 
         if(this.useLinker) {
-            comp += "-c ";
-        } else {
             comp += "-fuse-ld=lld ";
+        } else {
+            comp += "-c ";
         }
 
         precomp += `${this.sourceFile} `;
@@ -54,8 +54,8 @@ export default class LLVMDriver extends Driver {
         }
     
         for(let dir of this.precompiledSearchDir) {
-            precomp += `-fprebuild-module-path=${dir} `; 
-            comp += `-fprebuild-module-path=${dir} `;
+            precomp += `-fprebuilt-module-path=${dir} `; 
+            comp += `-fprebuilt-module-path=${dir} `;
         }
     
         for(let incl of this.includes) {
@@ -67,13 +67,13 @@ export default class LLVMDriver extends Driver {
             // exec += `/Fd"${this.debugOutput}" `;
         }
         if(this.useLinker == false) {
-            comp += `-o ${this.objectOutput}.obj `;
+            comp += `-o ${this.objectOutput} `;
         } else {
             // Executable
             let ext = 'exe';
             comp += `-o ${this.objectOutput}.${ext} `;
         }
-        precomp += `-o ${this.objectOutput}.pcm `;
+        //precomp += `-o ${this.objectOutput}.pcm `;
 
         for(let lib of this.objects) {
             precomp += `${lib} `;
@@ -81,13 +81,13 @@ export default class LLVMDriver extends Driver {
         }
 
         if(this.interface) {
-            return `${precomp} && ${comp}`;
+            return [precomp, comp];
         } else {
-            return comp;
+            return [comp];
         }
     }
 
-    Linker(): string {
+    Linker(): string[] {
         let exec: string = '';
 
         switch(this.platform) {
@@ -113,16 +113,16 @@ export default class LLVMDriver extends Driver {
             exec += `${lib} `;
         }
 
-        return exec;
+        return [exec];
     }
 
-    Resource(): string {
+    Resource(): string[] {
         let exec: string = `llvm-rc /FO ${this.objectOutput} ${this.sourceFile}`;
 
-        return exec;
+        return [exec];
     }
 
-    Flush(): string {
+    Flush(): string[] {
         let exec: string = '';
 
         switch(this.executor) {

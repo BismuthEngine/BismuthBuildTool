@@ -2,21 +2,19 @@ import Driver from "../Driver.js"
 
 export default class EmscriptenDriver extends Driver {
 
-    Compiler(): string {
-        let exec: string = ' ';
+    Compiler(): string[] {
+        let exec: string[] = [];
         
         return exec;
     }
 
-    Linker(): string {
-        let exec: string = "";
+    Linker(): string[] {
+        let exec: string[] = [""];
 
         return exec;
     }
 
-    Flush(): string {
-        let exec: string = '';
-
+    Flush(): string[] {
         if(this.platform != "WebASM") {
             throw "Emscripten does not support any compilation target, except of WebASM";
         }
@@ -30,6 +28,6 @@ export default class EmscriptenDriver extends Driver {
                 break;
         }
 
-        return exec;
+        return [];
     }
 }

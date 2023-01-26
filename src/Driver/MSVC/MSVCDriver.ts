@@ -28,7 +28,7 @@ export default class MSVCDriver extends Driver {
         console.log(`Found MSVC Development Environment at: ${MSVCDriver.EnvCmd}`);
     }
 
-    Compiler(): string {
+    Compiler(): string[] {
         let exec: string = `cl.exe /W3 /WX- /EHsc /std:${this.standard} `;
         
         if(this.interface){
@@ -90,10 +90,10 @@ export default class MSVCDriver extends Driver {
             //exec += `${lib} `;
         }
 
-        return `${MSVCDriver.EnvCmd} && ${exec}`;
+        return [`${MSVCDriver.EnvCmd} && ${exec}`];
     }
 
-    Linker(): string {
+    Linker(): string[] {
         let exec: string = "link.exe /lib ";
 
         exec += `/out:${this.objectOutput}.lib `;
@@ -102,17 +102,16 @@ export default class MSVCDriver extends Driver {
             exec += `${lib} `;
         }
 
-        return `${MSVCDriver.EnvCmd} && ${exec}`;
+        return [`${MSVCDriver.EnvCmd} && ${exec}`];
     }
 
-    Resource(): string {
+    Resource(): string[] {
         let exec: string = 'rc ';
 
-        return `${MSVCDriver.EnvCmd} && ${exec}`;
+        return [`${MSVCDriver.EnvCmd} && ${exec}`];
     }
 
-    Flush(): string {
-        let exec: string = '';
+    Flush(): string[] {
 
         switch(this.executor) {
             case "Compiler":
@@ -125,7 +124,5 @@ export default class MSVCDriver extends Driver {
                 return this.Resource();
                 break;
         }
-
-        return exec;
     }
 }
